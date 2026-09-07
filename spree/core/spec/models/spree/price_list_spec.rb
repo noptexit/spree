@@ -113,6 +113,50 @@ describe Spree::PriceList, type: :model do
       end
     end
 
+    # The payload is the whole ladder, so what a merchant sends is what the
+    # list ends up holding (docs/plans/6.0-volume-pricing.md).
+    describe 'writing the ladder from a flat payload' do
+      it 'creates the bands it names' do
+        fresh = create(:price_list, store: @default_store, catalog: create(:catalog, store: @default_store),
+                                    price_adjustment_percentage: -5)
+        fresh.update!(price_adjustment_tiers: [
+                        { min_quantity: 10, percentage: '-10' },
+                        { min_quantity: 50, percentage: '-20' }
+                      ])
+
+        expect(fresh.reload.price_adjustment_tiers.map { |tier| [tier.min_quantity, tier.percentage.to_i] }).
+          to eq([[10, -10], [50, -20]])
+      end
+
+      it 'updates a band the payload names again rather than duplicating it' do
+        price_list.update!(price_adjustment_tiers: [{ min_quantity: 10, percentage: '-12' }])
+
+        expect(price_list.reload.price_adjustment_tiers.map { |tier| [tier.min_quantity, tier.percentage.to_i] }).
+          to eq([[10, -12]])
+      end
+
+      it 'removes a band the payload leaves out' do
+        price_list.update!(price_adjustment_tiers: [{ min_quantity: 50, percentage: '-20' }])
+
+        expect(price_list.reload.price_adjustment_tiers.map(&:min_quantity)).to eq([50])
+      end
+
+      it 'clears the ladder on an empty payload' do
+        price_list.update!(price_adjustment_tiers: [])
+
+        expect(price_list.reload.price_adjustment_tiers).to be_empty
+      end
+
+      # Rails assigns model instances on an association swap; the writer has to
+      # fall through to the ordinary setter rather than treat them as rows.
+      it 'falls through to the standard writer for model instances' do
+        replacement = Spree::PriceAdjustmentTier.new(min_quantity: 30, percentage: -15)
+        price_list.update!(price_adjustment_tiers: [replacement])
+
+        expect(price_list.reload.price_adjustment_tiers.map(&:min_quantity)).to eq([30])
+      end
+    end
+
     # Bands are the same percentage asked at a quantity, so a standalone list
     # is refused them for the same reason it is refused the column.
     it 'is only valid on a list a catalog owns' do
