@@ -147,10 +147,9 @@
         "updated": "Katalog aktualisiert"
       },
       "prices": {
+        "after_save": "Nach dem Speichern",
         "column_price": "Preis",
         "column_source": "Von",
-        "unpriced": "Kein Preis",
-        "after_save": "Nach dem Speichern",
         "source": {
           "explicit": "Eingegeben",
           "automatic": "Angepasst",
@@ -160,7 +159,10 @@
           "explicit": "Ein Betrag, der in der eigenen Preisliste dieses Katalogs eingegeben wurde.",
           "automatic": "Der Ladenpreis mit dem Prozentsatz dieses Katalogs.",
           "base": "Der normale Ladenpreis — dieser Katalog setzt für dieses Produkt keinen Preis."
-        }
+        },
+        "tier_count_one": "+{{count}} Stufe",
+        "tier_count_other": "+{{count}} Stufen",
+        "unpriced": "Kein Preis"
       },
       "products": {
         "add_cta": "Produkte hinzufügen",

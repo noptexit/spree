@@ -147,10 +147,9 @@
         "updated": "目录已更新"
       },
       "prices": {
+        "after_save": "保存后",
         "column_price": "价格",
         "column_source": "来源",
-        "unpriced": "无价格",
-        "after_save": "保存后",
         "source": {
           "explicit": "已录入",
           "automatic": "已调整",
@@ -160,7 +159,10 @@
           "explicit": "在本目录自有价格表中录入的金额。",
           "automatic": "店铺价应用本目录百分比后的结果。",
           "base": "普通店铺价 — 本目录未为该商品定价。"
-        }
+        },
+        "tier_count_one": "+{{count}} 档",
+        "tier_count_other": "+{{count}} 档",
+        "unpriced": "无价格"
       },
       "products": {
         "add_cta": "添加产品",

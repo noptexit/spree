@@ -149,10 +149,9 @@
         "updated": "Katalog zaktualizowany"
       },
       "prices": {
+        "after_save": "Po zapisaniu",
         "column_price": "Cena",
         "column_source": "Źródło",
-        "unpriced": "Brak ceny",
-        "after_save": "Po zapisaniu",
         "source": {
           "explicit": "Wprowadzona",
           "automatic": "Skorygowana",
@@ -162,7 +161,10 @@
           "explicit": "Kwota wprowadzona na własnej liście cen tego katalogu.",
           "automatic": "Cena sklepowa z zastosowanym procentem tego katalogu.",
           "base": "Zwykła cena sklepowa — ten katalog nie ustala ceny tego produktu."
-        }
+        },
+        "tier_count_one": "+{{count}} próg",
+        "tier_count_other": "+{{count}} progi",
+        "unpriced": "Brak ceny"
       },
       "products": {
         "add_cta": "Dodaj produkty",

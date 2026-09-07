@@ -147,10 +147,9 @@
         "updated": "Catalog updated"
       },
       "prices": {
+        "after_save": "After save",
         "column_price": "Price",
         "column_source": "From",
-        "unpriced": "No price",
-        "after_save": "After save",
         "source": {
           "explicit": "Entered",
           "automatic": "Adjusted",
@@ -160,7 +159,10 @@
           "explicit": "An amount entered on this catalog’s own price list.",
           "automatic": "The shop price with this catalog’s percentage applied.",
           "base": "The normal shop price — this catalog does not price this product."
-        }
+        },
+        "tier_count_one": "+{{count}} tier",
+        "tier_count_other": "+{{count}} tiers",
+        "unpriced": "No price"
       },
       "products": {
         "add_cta": "Add products",

@@ -53,7 +53,18 @@ export function catalogPriceColumns({
         <>
           <TableCell className="text-right tabular-nums">
             {price ? (
-              price.display_amount
+              <span className="inline-flex items-center justify-end gap-1.5">
+                {price.display_amount}
+                {/* What the agreement charges for one unit, with the tiers
+                    above it counted rather than hidden — a single figure on a
+                    laddered variant reads as the only price there is
+                    (docs/plans/6.0-volume-pricing.md). */}
+                {price.break_count > 0 && (
+                  <Badge variant="outline" className="font-normal">
+                    {i18n.t('admin.catalogs.prices.tier_count', { count: price.break_count })}
+                  </Badge>
+                )}
+              </span>
             ) : (
               <span className="text-muted-foreground">
                 {row.pending === 'added'

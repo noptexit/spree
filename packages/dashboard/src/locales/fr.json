@@ -147,10 +147,9 @@
         "updated": "Catalogue mis à jour"
       },
       "prices": {
+        "after_save": "Après enregistrement",
         "column_price": "Prix",
         "column_source": "Source",
-        "unpriced": "Aucun prix",
-        "after_save": "Après enregistrement",
         "source": {
           "explicit": "Saisi",
           "automatic": "Ajusté",
@@ -160,7 +159,10 @@
           "explicit": "Un montant saisi dans la liste de prix propre à ce catalogue.",
           "automatic": "Le prix boutique avec le pourcentage de ce catalogue.",
           "base": "Le prix boutique normal — ce catalogue ne fixe pas de prix pour ce produit."
-        }
+        },
+        "tier_count_one": "+{{count}} palier",
+        "tier_count_other": "+{{count}} paliers",
+        "unpriced": "Aucun prix"
       },
       "products": {
         "add_cta": "Ajouter des produits",
