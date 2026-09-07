@@ -46,11 +46,30 @@ module Spree
               Array(@collection).flat_map { |product| product.variants.to_a }
             end
 
-            # Every row lists its variants and prices each of them, so the
-            # variants and their prices are loaded with the page rather than
-            # a query per product (docs/plans/6.0-volume-pricing.md).
+            # Every row lists its variants and prices each of them, so what the
+            # rows read comes down with the page rather than a query per
+            # variant: the prices the resolver picks from, the option values
+            # that name the variant, and the stock levels behind the
+            # in-stock and purchasable flags
+            # (docs/plans/6.0-volume-pricing.md).
+            #
+            # `default_variant` is preloaded separately from `variants`
+            # despite being one of them: it is its own `belongs_to`, so it
+            # arrives as a different object with a cache of its own, and the
+            # product row's price and status read it rather than the
+            # collection. Its prices and publications come with it, since
+            # `price_in` and `publication_for` both query per product unless
+            # the association is already loaded.
             def collection_includes
-              [{ variants: :prices }]
+              [
+                { product_publications: :channel },
+                { default_variant: :prices },
+                { variants: [
+                  :prices,
+                  { option_values: :option_type },
+                  { stock_levels: %i[stock_location active_stock_reservations] }
+                ] }
+              ]
             end
 
             def scope

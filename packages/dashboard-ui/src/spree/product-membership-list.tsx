@@ -37,6 +37,8 @@ import { SearchInput } from './search-input'
 export interface SubRowLayout {
   /** Cells before the product-name column (selection checkbox, drag handle). */
   leadingCells: number
+  /** How many extra columns the caller's own `extraColumns` set contributes. */
+  extraColumnCount: number
   /** Cells after the extra columns (the row-action column). */
   trailingCells: number
 }
@@ -108,6 +110,12 @@ export interface ProductMembershipListProps {
    */
   renderSubRows?: (row: ProductMembershipRow, layout: SubRowLayout) => ReactNode
   extraColumns?: {
+    /**
+     * How many columns this set contributes. Stated rather than counted from
+     * the rendered headers, so a sub-row can span the columns it does not
+     * fill without the table coming up short.
+     */
+    columnCount?: number
     headers: ReactNode
     renderCells: (row: ProductMembershipRow) => ReactNode
   }
@@ -216,6 +224,7 @@ export function ProductMembershipList({
   // than leaving each caller to re-derive it and drift.
   const subRowLayout: SubRowLayout = {
     leadingCells: (curatable ? 1 : 0) + (reorderable ? 1 : 0),
+    extraColumnCount: extraColumns?.columnCount ?? 0,
     trailingCells: 1,
   }
 
@@ -255,7 +264,12 @@ export function ProductMembershipList({
                   </TableHead>
                 )}
                 {reorderable && <TableHead className="w-8" />}
-                <TableHead>{labels.columnProduct}</TableHead>
+                {/* `w-full max-w-0`: table layout sizes a column to its
+                    content, so a long product or variant name would push the
+                    columns beside it out of the card — which clips them
+                    rather than scrolling. This makes the product column take
+                    whatever is left instead, and its content truncate. */}
+                <TableHead className="w-full max-w-0">{labels.columnProduct}</TableHead>
                 {extraColumns?.headers}
                 <TableHead className="w-10" />
               </TableRow>
@@ -359,8 +373,8 @@ function MembershipRow({
             {reorderable && <DragHandle attributes={attributes} listeners={listeners} />}
           </TableCell>
         )}
-        <TableCell>
-          <span className={cn('flex items-center gap-3', removed && 'line-through')}>
+        <TableCell className="max-w-0">
+          <span className={cn('flex min-w-0 items-center gap-3', removed && 'line-through')}>
             <Thumbnail src={row.thumbnailUrl} size="sm" />
             {renderTitle ? renderTitle(row) : <span className="truncate text-sm">{row.name}</span>}
             {added && labels.pendingAddedBadge && (
@@ -416,6 +430,7 @@ export function mergeExtraColumns(
   ...sets: NonNullable<ProductMembershipListProps['extraColumns']>[]
 ): NonNullable<ProductMembershipListProps['extraColumns']> {
   return {
+    columnCount: sets.reduce((total, set) => total + (set.columnCount ?? 0), 0),
     headers: (
       <>
         {sets.map((set, index) => (

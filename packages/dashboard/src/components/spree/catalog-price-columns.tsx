@@ -26,6 +26,9 @@ const AGREEMENT_SOURCES = ['explicit', 'automatic'] as const
  * staged removal keeps showing its price: it is still on the list until Save,
  * and the struck-through row already says it is leaving.
  */
+/** Columns `catalogPriceColumns` contributes, and a variant sub-row fills itself. */
+const CATALOG_PRICE_COLUMN_COUNT = 2
+
 export function catalogPriceColumns({
   headers,
 }: {
@@ -35,6 +38,7 @@ export function catalogPriceColumns({
   }
 }) {
   return {
+    columnCount: CATALOG_PRICE_COLUMN_COUNT,
     headers: (
       <>
         <TableHead className="w-32 text-right">{headers.price}</TableHead>
@@ -160,7 +164,13 @@ function TierBadge({ price }: { price: CatalogPrice }) {
 export function catalogVariantRows({ products }: { products: CatalogProduct[] }) {
   const byId = new Map(products.map((product) => [product.id, product.catalog_variants ?? []]))
 
-  return (row: ProductMembershipRow, { leadingCells, trailingCells }: SubRowLayout) => {
+  return (
+    row: ProductMembershipRow,
+    { leadingCells, extraColumnCount, trailingCells }: SubRowLayout,
+  ) => {
+    // A variant row fills this set's own columns (price, source); every other
+    // set's columns belong to the product and are spanned.
+    const spannedCells = Math.max(extraColumnCount - CATALOG_PRICE_COLUMN_COUNT, 0) + trailingCells
     // A staged addition has no server row yet, so it has nothing to list.
     const variants = row.pending === 'added' ? [] : (byId.get(row.id) ?? [])
     if (variants.length === 0) return null
@@ -170,13 +180,19 @@ export function catalogVariantRows({ products }: { products: CatalogProduct[] })
         {/* One spanning cell rather than several empty ones: these are
             spacers to line the row up, not columns of their own. */}
         {leadingCells > 0 && <TableCell colSpan={leadingCells} />}
-        <TableCell className="text-muted-foreground">
-          <span className="flex items-center gap-2 pl-11">
-            <span className="truncate">
+        {/* The name gives up space last: a flex item's default minimum is its
+            own content, so both halves have to be told they may shrink, and
+            the SKU is told to shrink first — it identifies the variant only
+            once the name already has. */}
+        <TableCell className="max-w-0 text-muted-foreground">
+          <span className="flex min-w-0 items-center gap-2 pl-11">
+            <span className="shrink-[1] truncate">
               {price.label ?? i18n.t('admin.catalogs.prices.variant_default')}
             </span>
             {price.sku && (
-              <span className="truncate font-mono text-xs opacity-70">{price.sku}</span>
+              <span className="min-w-0 shrink-[4] truncate font-mono text-xs opacity-70">
+                {price.sku}
+              </span>
             )}
           </span>
         </TableCell>
@@ -189,7 +205,11 @@ export function catalogVariantRows({ products }: { products: CatalogProduct[] })
         <TableCell>
           <PriceSourceBadge source={price.source} />
         </TableCell>
-        {trailingCells > 0 && <TableCell colSpan={trailingCells} />}
+        {/* The quantity-term columns and the row-action column, spanned
+            rather than filled: terms are stated per product, so a variant row
+            has nothing to say in them. Counted from the table's own layout so
+            the row can never come up short and stretch the table. */}
+        {spannedCells > 0 && <TableCell colSpan={spannedCells} />}
       </tr>
     ))
   }

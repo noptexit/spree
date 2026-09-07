@@ -484,12 +484,22 @@ module Spree
       end
     end
 
+    # The store's zone, read once. `currently_active?` is asked per variant on
+    # a listing, and the association behind it is a query each time
+    # (docs/plans/6.0-volume-pricing.md).
+    #
+    # @return [String]
+    def store_timezone
+      return @store_timezone if defined?(@store_timezone)
+
+      @store_timezone = store&.preferred_timezone || Rails.application.config.time_zone
+    end
+
     # Returns true if the date is within the price list date range
     # @param date [Time] the date to check
     # @return [Boolean]
     def within_date_range?(date)
-      timezone = store&.preferred_timezone || Rails.application.config.time_zone
-      date_in_tz = date.in_time_zone(timezone)
+      date_in_tz = date.in_time_zone(store_timezone)
 
       return false if starts_at.present? && date_in_tz < starts_at
       return false if ends_at.present? && date_in_tz > ends_at

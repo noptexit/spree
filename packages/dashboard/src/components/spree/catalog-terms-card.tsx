@@ -296,6 +296,7 @@ export function catalogTermColumns({
   }
 
   return {
+    columnCount: 2,
     // The shared table's own cells rather than hand-rolled ones: TableHead
     // carries the header's rule and background, TableCell the row border, so
     // raw elements read as a separate block that ignores the row hover.
@@ -339,7 +340,10 @@ export function catalogTermColumns({
               placeholder={entry?.mixed ? headers.mixed : catalogMinimum || headers.defaultHint}
               value={entry?.minimum_order_quantity ?? ''}
               onChange={(event) => set(row.id, 'minimum_order_quantity', event.target.value)}
-              className="h-8"
+              // No spinner: it reserves room these narrow columns do not have,
+              // clipping the "Default" placeholder that says the product
+              // inherits the catalog's own term.
+              className="h-8 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
             {minimumInvalid && <p className="mt-1 text-destructive text-xs">{headers.invalid}</p>}
           </TableCell>
@@ -354,7 +358,7 @@ export function catalogTermColumns({
               placeholder={entry?.mixed ? headers.mixed : catalogMultiple || headers.defaultHint}
               value={entry?.order_multiple ?? ''}
               onChange={(event) => set(row.id, 'order_multiple', event.target.value)}
-              className="h-8"
+              className="h-8 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
             {multipleInvalid && <p className="mt-1 text-destructive text-xs">{headers.invalid}</p>}
           </TableCell>

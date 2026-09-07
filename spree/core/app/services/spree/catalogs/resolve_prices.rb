@@ -45,9 +45,13 @@ module Spree
         ids = Array(variants).map(&:id)
         return if ids.empty?
 
+        # Accumulated rather than replaced: a caller may preload in batches,
+        # and overwriting would send every variant from an earlier batch back
+        # to a query of its own.
+        #
         # An empty result still counts as loaded for that variant — a product
         # nothing prices must not fall through to a query per row.
-        @rows = ids.index_with { [] }.merge(price_rows_for(ids))
+        @rows = (@rows || {}).merge(ids.index_with { [] }).merge(price_rows_for(ids))
       end
 
       # The price this agreement gives for a variant.
