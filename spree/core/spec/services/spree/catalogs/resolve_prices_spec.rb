@@ -211,6 +211,28 @@ RSpec.describe Spree::Catalogs::ResolvePrices do
         expect(price.break_count).to eq(1)
       end
 
+      # An explicit row is the deepest rung at every quantity, so the bands
+      # never apply to that variant — and the page says so rather than
+      # promising tiers the buyer will not get.
+      it 'counts no tiers for a variant an explicit row shadows' do
+        list = create(:price_list, :active, store: store, catalog: catalog,
+                                            price_adjustment_percentage: -10)
+        create(:price_adjustment_tier, price_list: list, min_quantity: 50, percentage: -20)
+        create(:price, variant: variant, price_list: list, amount: 12, currency: 'USD')
+
+        price = resolve(catalog.reload)
+
+        expect(price.amount).to eq(12)
+        expect(price.source).to eq('explicit')
+        expect(price.break_count).to eq(0)
+        expect(price).not_to be_tiered
+
+        deep = Spree::Pricing::Context.new(
+          variant: variant, currency: 'USD', store: store, company: company, quantity: 50
+        )
+        expect(Spree::PricingProvider::Internal.new.price_for(deep).amount).to eq(12)
+      end
+
       # A list that only discounts from a quantity up charges base for one.
       it 'reads base for a bands-only list, with the bands counted' do
         list = create(:price_list, :active, store: store, catalog: catalog)

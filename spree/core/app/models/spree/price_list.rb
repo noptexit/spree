@@ -50,10 +50,12 @@ module Spree
     # @param rows [Array<Hash>] `[{ min_quantity:, percentage: }, ...]`
     # @return [void]
     def price_adjustment_tiers=(rows)
-      first = Array(rows).first
-      return super if first.nil? || first.is_a?(Spree.base_class)
+      rows = Array(rows)
+      # Records rather than a payload: Rails assigns those on an association
+      # swap, and the ordinary setter is what it expects.
+      return super if rows.first.is_a?(Spree.base_class)
 
-      wanted = Array(rows).map { |row| row.respond_to?(:to_h) ? row.to_h.with_indifferent_access : row }
+      wanted = rows.map { |row| row.respond_to?(:to_h) ? row.to_h.with_indifferent_access : row }
       by_quantity = price_adjustment_tiers.index_by { |tier| tier.min_quantity.to_i }
 
       kept = wanted.filter_map do |row|

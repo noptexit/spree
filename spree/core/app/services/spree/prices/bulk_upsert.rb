@@ -54,7 +54,7 @@ module Spree
 
         return success(price_count: 0) if affected_keys.empty?
 
-        over_cap = ladders_over_cap(upsert_rows)
+        over_cap = ladders_over_cap(upsert_rows, clear_rows)
         return failure(nil, over_cap: over_cap) if over_cap.any?
 
         base_rows, override_rows = payload.partition { |r| r[:price_list_id].nil? }
@@ -135,30 +135,45 @@ module Spree
       # extra queries at all.
       #
       # @param rows [Array<Hash>] the rows carrying an amount
+      # @param cleared_rows [Array<Hash>] the rows whose blank amount removes a rung
       # @return [Array<Hash>] `[{ variant_id:, currency:, price_list_id: }, ...]`
-      def ladders_over_cap(rows)
+      def ladders_over_cap(rows, cleared_rows = [])
         touched = rows.
                   reject { |row| row[:price_list_id].blank? || quantity_of(row) == 1 }.
                   group_by { |row| [row[:variant_id].to_s, row[:currency], row[:price_list_id].to_s] }.
                   transform_values { |group| group.map { |row| quantity_of(row) }.to_set }
         return [] if touched.empty?
 
+        cleared = cleared_rows.
+                  reject { |row| row[:price_list_id].blank? || quantity_of(row) == 1 }.
+                  group_by { |row| [row[:variant_id].to_s, row[:currency], row[:price_list_id].to_s] }.
+                  transform_values { |group| group.map { |row| quantity_of(row) }.to_set }
+
         # One query for every ladder in the batch rather than one each: an
         # import writing a ladder across two hundred variants would otherwise
         # issue two hundred round trips inside the request. Cross-pairs the
         # `IN` clauses pull in are dropped by the lookup below, the same way
         # #sweep handles them.
+        # Placeholder rows charge nothing, so they do not fill a ladder — the
+        # model's own guard counts the same way, and a cap two writers
+        # disagree about is one that refuses what it just allowed.
         stored = Spree::Price.
                  where(variant_id: touched.keys.map { |key| key[0] },
                        currency: touched.keys.map { |key| key[1] },
                        price_list_id: touched.keys.map { |key| key[2] }).
                  breaks.
+                 where.not(amount: nil).
                  pluck(:variant_id, :currency, :price_list_id, :min_quantity).
                  group_by { |variant_id, currency, price_list_id, _| [variant_id.to_s, currency, price_list_id.to_s] }
 
         touched.filter_map do |key, incoming|
-          rungs = stored.fetch(key, []).map(&:last).to_set | incoming
-          next if rungs.size <= Spree::Price::MAXIMUM_BREAKS_PER_VARIANT
+          # Stored rungs this batch does not name are the ones that survive it;
+          # counting the rest as well would refuse a merchant who deleted two
+          # rungs and added two others, whose ladder ends the size it began.
+          # The deletions ride in `clear_rows` and the sweep applies them, so
+          # what is left after this batch is (survivors + incoming).
+          survivors = stored.fetch(key, []).map(&:last).to_set - cleared.fetch(key, Set.new)
+          next if (survivors | incoming).size <= Spree::Price::MAXIMUM_BREAKS_PER_VARIANT
 
           { variant_id: key[0], currency: key[1], price_list_id: key[2] }
         end

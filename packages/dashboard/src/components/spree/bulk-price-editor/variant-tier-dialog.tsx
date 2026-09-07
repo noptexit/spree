@@ -117,8 +117,10 @@ export function VariantTierDialog({
     const quantity = Number(rung.minQuantity)
     return !Number.isInteger(quantity) || quantity < 2 || toCanonical(rung.value) === null
   })
+  // Compared as numbers: "10" and "010" address the same rung, and letting
+  // both through means the batch silently keeps one and drops the other.
   const duplicateQuantity =
-    new Set(draft.map((rung) => rung.minQuantity.trim())).size !== draft.length
+    new Set(draft.map((rung) => Number(rung.minQuantity))).size !== draft.length
 
   async function handleSave() {
     const upserts: PriceBulkUpsertRow[] = draft
@@ -132,20 +134,28 @@ export function VariantTierDialog({
       }))
 
     // A rung is identified by its quantity, not by the row it came from:
-    // moving a break from 24 to 30 writes a new row, so keying the removals
-    // on the row id would leave the 24 behind and charge it to orders of
-    // 24-29 (docs/plans/6.0-volume-pricing.md).
+    // moving a break from 24 to 30 writes a new row, so keying the removals on
+    // the row id would leave the 24 behind and charge it to orders of 24-29
+    // (docs/plans/6.0-volume-pricing.md).
     const keptQuantities = new Set(upserts.map((rung) => rung.min_quantity))
-    const removedIds = stored
+
+    // Removals ride in the same batch as a blank amount, which is what the
+    // bulk endpoint reads as "clear this price". One request rather than two:
+    // the server then sees the whole ladder at once, so it neither refuses a
+    // rewrite for rungs it is about to drop nor leaves the ladder half erased
+    // when a write is refused.
+    const removals: PriceBulkUpsertRow[] = stored
       .filter((rung) => rung.min_quantity > 1 && !keptQuantities.has(rung.min_quantity))
-      .map((rung) => rung.id)
+      .map((rung) => ({
+        variant_id: variantId,
+        currency,
+        price_list_id: priceListId,
+        min_quantity: rung.min_quantity,
+        amount: null,
+      }))
 
     try {
-      // Written before the deletions, so a refused write (the cap, a
-      // validation) leaves the stored ladder as it was rather than half
-      // erased with nothing put in its place.
-      if (upserts.length > 0) await bulkUpsertAsync({ prices: upserts })
-      if (removedIds.length > 0) await adminClient.prices.bulkDestroy({ ids: removedIds })
+      await bulkUpsertAsync({ prices: [...upserts, ...removals] })
 
       await queryClient.invalidateQueries({ queryKey: ['prices'] })
       toastManager.add({

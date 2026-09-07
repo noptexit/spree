@@ -54,7 +54,15 @@ module Spree
         rows = price_rows
         return if rows.empty?
 
-        Spree::Prices::BulkUpsert.call(rows: rows)
+        # The service refuses a batch that would take a ladder past the break
+        # cap. Ignoring that would answer 200 while writing nothing
+        # (docs/plans/6.0-volume-pricing.md).
+        result = Spree::Prices::BulkUpsert.call(rows: rows)
+        unless result.success?
+          price_list.errors.add(:base, :too_many_breaks, count: Spree::Price::MAXIMUM_BREAKS_PER_VARIANT)
+          return failure(price_list)
+        end
+
         touch_variants(rows.map { |row| row[:variant_id] }.uniq)
       end
 

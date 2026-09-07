@@ -131,8 +131,15 @@ export const catalogFormSchema = z
       error: () => i18n.t('admin.products.price_lists.validation.minimum_quantity_invalid'),
     },
   )
+  // A list may discount only from a quantity up, with no percentage at one
+  // unit — the backend prices that automatically, so requiring a magnitude
+  // would make such an agreement unsaveable from the form that shows it
+  // (docs/plans/6.0-volume-pricing.md).
   .refine(
-    (v) => v.pricing_mode !== 'automatic' || parsePercentage(v.adjustment_magnitude) !== null,
+    (v) =>
+      v.pricing_mode !== 'automatic' ||
+      v.adjustment_tiers.length > 0 ||
+      parsePercentage(v.adjustment_magnitude) !== null,
     {
       path: ['adjustment_magnitude'],
       error: () => i18n.t('admin.products.price_lists.validation.adjustment_required'),
@@ -299,7 +306,13 @@ function priceListPayload(values: CatalogFormValues, previousMode?: CatalogPrici
   const magnitude = parsePercentage(values.adjustment_magnitude)
   const base =
     magnitude === null
-      ? { adjust_compare_at: values.adjust_compare_at }
+      ? {
+          // Explicit null rather than an omission when bands carry the list:
+          // omitting it would leave a stale quantity-1 percentage in place
+          // under a ladder that no longer names one.
+          ...(values.adjustment_tiers.length > 0 ? { price_adjustment_percentage: null } : {}),
+          adjust_compare_at: values.adjust_compare_at,
+        }
       : {
           price_adjustment_percentage: String(
             values.adjustment_direction === 'decrease' ? -magnitude : magnitude,

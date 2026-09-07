@@ -192,6 +192,31 @@ RSpec.describe Spree::Prices::BulkUpsert do
       expect(described_class.call(rows: rows.map { |row| row.merge(amount: '8.00') })).to be_success
     end
 
+    # A merchant who drops two rungs and adds two others ends with the ladder
+    # the size it began, so the batch carrying both must not be refused for
+    # the rungs it is about to remove.
+    it 'lets a full ladder swap rungs in one batch' do
+      full = (2..(Spree::Price::MAXIMUM_BREAKS_PER_VARIANT + 1)).map { |q| rung(q) }
+      described_class.call(rows: full)
+
+      swap = [rung(2, nil), rung(3, nil), rung(500), rung(600)]
+
+      expect(described_class.call(rows: swap)).to be_success
+      expect(Spree::Price.where(price_list: price_list, variant: variant).breaks.count).
+        to eq(Spree::Price::MAXIMUM_BREAKS_PER_VARIANT)
+    end
+
+    # Placeholders charge nothing, so they do not fill a ladder — the model's
+    # own guard counts the same way.
+    it 'does not count placeholder rungs against the cap' do
+      (2..(Spree::Price::MAXIMUM_BREAKS_PER_VARIANT + 1)).each do |quantity|
+        create(:price, variant: variant, currency: 'USD', price_list: price_list,
+                       min_quantity: quantity, amount: nil)
+      end
+
+      expect(described_class.call(rows: [rung(500)])).to be_success
+    end
+
     # An ordinary spreadsheet save carries no breaks at all, and must not pay
     # for the check.
     it 'runs no cap query for a batch of bottom rungs' do
