@@ -13,7 +13,7 @@ import {
   toastManager,
 } from '@spree/dashboard-ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useBulkUpsertPrices } from '../../../hooks/use-prices'
 import { MAXIMUM_QUANTITY_TIERS } from '../../../schemas/price-list'
@@ -87,12 +87,19 @@ export function VariantTierDialog({
 
   const stored = useMemo<StoredRung[]>(() => (data?.data ?? []) as unknown as StoredRung[], [data])
 
-  // Seed from the server every time the dialog opens, so a ladder edited,
-  // abandoned and reopened shows what is stored rather than the abandoned
-  // draft.
+  // Seeded once per opening, not on every change to `stored`: TanStack
+  // refetches on window focus, and re-seeding from that would discard a
+  // half-typed ladder the moment the merchant tabbed away and back. Closing
+  // and reopening is what re-reads the server.
+  const seededFor = useRef<string | null>(null)
   useEffect(() => {
-    if (!open || isLoading) return
+    if (!open) {
+      seededFor.current = null
+      return
+    }
+    if (isLoading || seededFor.current === variantId) return
 
+    seededFor.current = variantId
     setDraft(
       stored.map((rung) => ({
         id: `${rowIdPrefix}-stored-${rung.id}`,
@@ -105,7 +112,7 @@ export function VariantTierDialog({
         locked: rung.min_quantity === 1,
       })),
     )
-  }, [open, isLoading, stored, decimal, rowIdPrefix])
+  }, [open, isLoading, stored, decimal, rowIdPrefix, variantId])
 
   const toCanonical = (value: string) => {
     const normalized = normalizeMoneyInput(value, marketLocale || 'en')
