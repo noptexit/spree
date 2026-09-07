@@ -80,10 +80,13 @@ export function NumberCell({
       commit()
       ctx.setEditing(null)
       // Move down to mirror Excel.
-      const next = { row: coords.row + 1, col: coords.col }
+      // Clamped like arrow navigation: on the last row Enter would otherwise
+      // anchor outside the grid, and every arrow key after it would compute
+      // from a position that does not exist.
+      const next = { row: Math.min(coords.row + 1, ctx.bounds.maxRow), col: coords.col }
       ctx.setAnchor(next)
       ctx.setExtent(next)
-      ctx.cells.get(`${next.row}.${next.col}`)?.focus()
+      ctx.focusCell(next)
     } else if (event.key === 'Escape') {
       event.preventDefault()
       setDraft(value.toString())
@@ -96,7 +99,7 @@ export function NumberCell({
       const next = { row: coords.row, col: coords.col + dx }
       ctx.setAnchor(next)
       ctx.setExtent(next)
-      ctx.cells.get(`${next.row}.${next.col}`)?.focus()
+      ctx.focusCell(next)
     }
   }
 
@@ -223,10 +226,13 @@ export function MoneyCell({
       event.preventDefault()
       commit()
       ctx.setEditing(null)
-      const next = { row: coords.row + 1, col: coords.col }
+      // Clamped like arrow navigation: on the last row Enter would otherwise
+      // anchor outside the grid, and every arrow key after it would compute
+      // from a position that does not exist.
+      const next = { row: Math.min(coords.row + 1, ctx.bounds.maxRow), col: coords.col }
       ctx.setAnchor(next)
       ctx.setExtent(next)
-      ctx.cells.get(`${next.row}.${next.col}`)?.focus()
+      ctx.focusCell(next)
     } else if (event.key === 'Escape') {
       event.preventDefault()
       setDraft(formatDisplay(value))
@@ -239,7 +245,7 @@ export function MoneyCell({
       const next = { row: coords.row, col: coords.col + dx }
       ctx.setAnchor(next)
       ctx.setExtent(next)
-      ctx.cells.get(`${next.row}.${next.col}`)?.focus()
+      ctx.focusCell(next)
     }
   }
 
@@ -350,10 +356,13 @@ export function TextCell({ coords, value, onChange, ariaLabel }: TextCellProps) 
       event.preventDefault()
       commit()
       ctx.setEditing(null)
-      const next = { row: coords.row + 1, col: coords.col }
+      // Clamped like arrow navigation: on the last row Enter would otherwise
+      // anchor outside the grid, and every arrow key after it would compute
+      // from a position that does not exist.
+      const next = { row: Math.min(coords.row + 1, ctx.bounds.maxRow), col: coords.col }
       ctx.setAnchor(next)
       ctx.setExtent(next)
-      ctx.cells.get(`${next.row}.${next.col}`)?.focus()
+      ctx.focusCell(next)
     } else if (event.key === 'Escape') {
       event.preventDefault()
       setDraft(value ?? '')
@@ -366,7 +375,7 @@ export function TextCell({ coords, value, onChange, ariaLabel }: TextCellProps) 
       const next = { row: coords.row, col: coords.col + dx }
       ctx.setAnchor(next)
       ctx.setExtent(next)
-      ctx.cells.get(`${next.row}.${next.col}`)?.focus()
+      ctx.focusCell(next)
     }
   }
 

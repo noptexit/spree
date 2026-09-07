@@ -83,11 +83,37 @@ function DataGridShell<T>({
     )
   }, [])
 
+  // A cell the grid wants focused that has not registered yet. Cells register
+  // in an effect, so a commit that ADDS a row — a spreadsheet whose last line
+  // is a blank waiting to be filled — asks for a cell that does not exist
+  // until the next render. Without this the focus is dropped on the floor and
+  // the arrow keys stop responding, since nothing holds the selection
+  // (docs/plans/6.0-volume-pricing.md).
+  const pendingFocusRef = useRef<CellCoords | null>(null)
+
+  const focusCell = useCallback((coords: CellCoords) => {
+    const target = cellsRef.current.get(cellKey(coords))
+    if (target) {
+      target.focus()
+      return
+    }
+    pendingFocusRef.current = coords
+  }, [])
+
   const registerCell = useCallback(
     (reg: CellRegistration) => {
       const key = cellKey(reg.coords)
       cellsRef.current.set(key, reg)
       recomputeBounds()
+
+      // The cell someone asked for has arrived — give it the focus it was
+      // promised, after this render commits.
+      const pending = pendingFocusRef.current
+      if (pending && cellKey(pending) === key) {
+        pendingFocusRef.current = null
+        queueMicrotask(() => cellsRef.current.get(key)?.focus())
+      }
+
       return () => {
         cellsRef.current.delete(key)
         recomputeBounds()
@@ -121,10 +147,11 @@ function DataGridShell<T>({
       setExtent,
       setEditing,
       registerCell,
+      focusCell,
       isSelected,
       selectedCells,
     }),
-    [bounds, anchor, extent, editing, registerCell, isSelected, selectedCells],
+    [bounds, anchor, extent, editing, registerCell, focusCell, isSelected, selectedCells],
   )
 
   return (
