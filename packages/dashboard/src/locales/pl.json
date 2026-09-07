@@ -162,8 +162,10 @@
           "automatic": "Cena sklepowa z zastosowanym procentem tego katalogu.",
           "base": "Zwykła cena sklepowa — ten katalog nie ustala ceny tego produktu."
         },
+        "tier_count_few": "+{{count}} progi",
+        "tier_count_many": "+{{count}} progów",
         "tier_count_one": "+{{count}} próg",
-        "tier_count_other": "+{{count}} progi",
+        "tier_count_other": "+{{count}} progów",
         "unpriced": "Brak ceny"
       },
       "products": {
@@ -3447,8 +3449,10 @@
           "tiers": {
             "add": "Dodaj próg ilościowy",
             "add_short": "Dodaj",
-            "count_badge": "progi: {{count}}",
+            "count_badge_few": "progi: {{count}}",
+            "count_badge_many": "progów: {{count}}",
             "count_badge_one": "próg: {{count}}",
+            "count_badge_other": "progów: {{count}}",
             "duplicate_quantity": "Dwa progi nie mogą zaczynać się od tej samej ilości.",
             "empty": "Brak progów — ten wariant kosztuje tyle samo niezależnie od wielkości zamówienia.",
             "help": "Od danej ilości w górę linia jest liczona po tej cenie jednostkowej. Wariant z progami jest wyceniany wyłącznie przez nie — procent listy go nie dotyczy.",
@@ -3456,8 +3460,10 @@
             "quantity": "Od ilości",
             "remove": "Usuń próg od {quantity}",
             "save_failed": "Nie udało się zapisać progów ilościowych.",
+            "save_success_few": "Zapisano {{count}} progi ilościowe.",
+            "save_success_many": "Zapisano {{count}} progów ilościowych.",
             "save_success_one": "Zapisano {{count}} próg ilościowy.",
-            "save_success_other": "Zapisano progi ilościowe: {{count}}.",
+            "save_success_other": "Zapisano {{count}} progów ilościowych.",
             "title": "Progi ilościowe — {{variant}}",
             "unit_price": "Cena jednostkowa"
           },

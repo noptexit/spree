@@ -3411,8 +3411,8 @@
           "tiers": {
             "add": "Ajouter un palier de quantité",
             "add_short": "Ajouter",
-            "count_badge": "{{count}} paliers",
             "count_badge_one": "{{count}} palier",
+            "count_badge_other": "{{count}} paliers",
             "duplicate_quantity": "Deux paliers ne peuvent pas commencer à la même quantité.",
             "empty": "Aucun palier — cette déclinaison est facturée au même prix quelle que soit la quantité.",
             "help": "À partir de chaque quantité, la ligne est facturée à ce prix unitaire. Une déclinaison à paliers est facturée uniquement ainsi — le pourcentage de la liste ne s’y applique pas.",

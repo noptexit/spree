@@ -3411,8 +3411,8 @@
           "tiers": {
             "add": "Mengenstaffel hinzufügen",
             "add_short": "Hinzufügen",
-            "count_badge": "{{count}} Staffeln",
             "count_badge_one": "{{count}} Staffel",
+            "count_badge_other": "{{count}} Staffeln",
             "duplicate_quantity": "Zwei Staffeln können nicht bei derselben Menge beginnen.",
             "empty": "Keine Staffeln — diese Variante kostet unabhängig von der Bestellmenge dasselbe.",
             "help": "Ab der jeweiligen Menge gilt dieser Stückpreis. Eine Variante mit Staffeln wird ausschließlich danach berechnet — der Prozentsatz der Liste gilt für sie nicht.",

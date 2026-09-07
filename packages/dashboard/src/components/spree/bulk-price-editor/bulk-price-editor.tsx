@@ -11,12 +11,15 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'rea
 import { useTranslation } from 'react-i18next'
 import { useCurrencyLocale } from '../../../hooks/use-currency-locale'
 import { useBulkUpsertPrices } from '../../../hooks/use-prices'
+import { MAXIMUM_QUANTITY_TIERS } from '../../../schemas/price-list'
 import { VariantTierDialog } from './variant-tier-dialog'
 
 const PAGE_SIZE = 50
 // The API caps a page at 100 rows, so the break sweep asks for exactly that
-// and pages until it has them all.
+// and pages until it has them all — at most one page per ten variants on
+// screen, since a variant carries at most ten breaks.
 const BREAK_PAGE_SIZE = 100
+const MAX_BREAK_PAGES = Math.ceil((PAGE_SIZE * MAXIMUM_QUANTITY_TIERS) / BREAK_PAGE_SIZE)
 
 interface PriceListRowFromServer {
   id: string
@@ -198,7 +201,7 @@ export function BulkPriceEditor({
     queryFn: async () => {
       const collected: PriceListRowFromServer[] = []
       let breakPage = 1
-      let lastPage = 1
+      let lastPage: number
 
       do {
         const response = await adminClient.prices.list({
@@ -213,7 +216,10 @@ export function BulkPriceEditor({
         collected.push(...(response.data as unknown as PriceListRowFromServer[]))
         lastPage = response.meta?.pages ?? 1
         breakPage += 1
-      } while (breakPage <= lastPage)
+        // Bounded: a page of variants can hold at most PAGE_SIZE ladders of
+        // MAXIMUM_QUANTITY_TIERS rungs, so anything beyond that is a server
+        // answering something this loop should not chase.
+      } while (breakPage <= lastPage && breakPage <= MAX_BREAK_PAGES)
 
       return collected
     },
