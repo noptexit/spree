@@ -104,7 +104,7 @@ One-time machine setup: Homebrew `postgresql@18` running on :5432 (with a `postg
 
 - All code namespaced under `Spree::` module
 - Follow Rails conventions and the Rails Security Guide
-- RESTful routes and action names
+- RESTful routes and action names, AVID adding custom non CRUD/RESTful actions, promote them to sub-controllers
 - CanCanCan for authorization: listings use `accessible_by(current_ability, :show)`, other actions use `authorize!`
 - Always use scope fetching for security (e.g. `current_store.orders` not `Spree::Order`). This applies to **every** lookup in a controller, including the incidental ones — resolving a `reason_id` or `stock_location_id` from a create param through the model constant accepts an id belonging to another store. Reading it through `current_store.<association>` turns that into a 404, which is the cheapest defence against IDOR. `accessible_by(current_ability, ...)` is not a substitute: it filters by role, not by tenant.
 - Ransack for filtering/searching, Pagy for pagination
@@ -134,9 +134,10 @@ Per-request context available in models, controllers, jobs, and services:
 ### Models
 
 - ALWAYS Inherit from `Spree.base_class`
+- We're on Rails 8.1 so use all the new and available methods from this release
 - New models carrying store-specific data (configuration, catalog, commerce records) ALWAYS `belongs_to :store` via `Spree::SingleStoreResource` — only genuinely global reference data (countries, states, roles) goes unscoped. Cross-store sharing is gone (`spree_multi_store` is legacy and unsupported)
 - ALWAYS pass `class_name` and `dependent` on associations; use `dependent: :destroy_async` for high-fanout associations to offload deletion to a background job
-- Include `Spree::Metafields` for custom fields support (see docs/plans/5.4-6.0-custom-fields-rename.md)
+- Include `Spree::CustomFields` for custom fields support
 - Include `Spree::Metadata` for JSON metadata support
 - ALWAYS Use string columns instead of enums
 - NEVER use `Struct` for domain value objects — use a plain Ruby class with `ActiveModel::Model` + `ActiveModel::Attributes` (typed attributes, validations) so it behaves like an ActiveRecord object (e.g. `Spree::PickupPointOption`)
@@ -151,6 +152,7 @@ Per-request context available in models, controllers, jobs, and services:
 - ALWAYS use insert_all/upsert_all when creating records in bulk, this relies on proper database uniqueness indexes. Special treatment for MySQL is needed though
 - ALWAYS put callbacks in private group
 - ALWAYS use existing vocabulary and naming patterns, avoid slang terms
+- DO NOT override Rails core API methods, eg. `update```
 
 ```ruby
 class Spree::Product < Spree.base_class

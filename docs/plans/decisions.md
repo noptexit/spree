@@ -4049,7 +4049,7 @@ group); group-style targeting of companies arrives, if ever, as explicit
 rule kinds on the promotion/price-rule STI families.
 
 **OSS trusts every member; governance is Enterprise, and its plans live in
-`spree-enterprise-v2/docs/plans/`.** The Store API ships full directory
+`ee/docs/plans/`.** The Store API ships full directory
 self-service — node detail, addresses, members, subtree order history,
 writable cart `company_id` (sole standing as the default; explicit node for
 multi-node buyers, finally settling the "provisional — revisit" resolution
@@ -4314,7 +4314,7 @@ Deliberately 6.1: every piece is additive, nothing needs the 6.0 breaking
 window, and 6.0 work must not build interim approval primitives in the
 meantime.
 
-**Enterprise** (`spree-enterprise-v2/docs/plans/b2b-company-onboarding.md`)
+**Enterprise** (`ee/docs/plans/b2b-company-onboarding.md`)
 registers the policy and owns the flow: an application record (FK → the
 OSS company; `spree_companies` stays status-free — this supersedes the
 same-day draft that put five statuses on Company), the seller-onboarding
@@ -4366,7 +4366,7 @@ wholesale-deposit rollup work, decided once). In 6.1:
 leaving the cart untouched (deliberately not the completion copier, which
 re-points money records and is one-shot).
 
-**Enterprise (`spree-enterprise-v2/docs/plans/b2b-quotes.md`)** owns the
+**Enterprise (`ee/docs/plans/b2b-quotes.md`)** owns the
 quote product: a thin `Quote` row over the draft order (own model → clean
 `Q` numbers from the per-resource sequence; one quote per draft), statuses
 `draft → sent → accepted → converted` (+ `changes_requested`, `expired`
@@ -4853,3 +4853,68 @@ keys in every dashboard locale, not a `Spree.t` label; new validation errors in
 core use a symbol and parameters, never a preformatted string; nothing in the
 dashboard prints an API `label`/`name`/`description` directly; shared admin copy
 goes in `dashboard-core` locales, never in `packages/seller-dashboard`.
+
+## 2026-09-07 — Three merchant asks resolved: market availability, the lot tier split, and the volume-pricing doctrine
+
+The next feedback batch (market exclusions, lot detail + tier question,
+volume pricing) resolved after three research passes (per-market
+availability, lot landscape, volume-pricing implementations).
+
+**Product market availability is a product-level territory axis**
+(`6.1-product-market-availability.md`): nullable
+`spree_products.market_availability` (NULL = all markets — zero backfill,
+exceptions-only join rows, new markets correct by construction) composed
+with publications as an intersection evaluated per request — **published
+on the channel ∧ available in the market** — with full hiding (the
+market-competent platform's choice; a "not available here" PDP advertises
+the product the distributor holds rights to) and a completion validation
+for the mid-cart market change no platform handles. One Availability card
+shows both axes (their de-confusion recipe). Deliberately NOT a market
+catalog — the 2026-08-28 closure stands; catalogs answer buyers, this
+answers territory. Channels were considered and rejected as the wrong
+axis (a channel per territory to hide two products is the duplication the
+merchant rejects). Constraints: availability is never denormalized; every
+market-context read surface applies the scope.
+
+**Lots split on the depth line** (maintainer's call, 2026-09-07 —
+supersedes the 2026-08-30 all-OSS decision and its 6.1 scope-trim note):
+OSS 6.1 keeps **simple lot capture** — `Spree::FulfillmentLot` rows
+(fulfillment item × lot number × optional quantity for split batches),
+advisory `lot_tracked` prompt, ransackable recall search both directions;
+the **lot library** (received-lot `StockLot` inventory, quantities,
+expiry/manufactured dates, supplier references, manual/FIFO/FEFO
+auto-allocation, the transactional `count_on_hand` decomposition) moves to
+**Enterprise** (`ee/docs/plans/inventory-lots.md`), whose
+allocation **writes the same OSS capture rows** so recall reads one
+surface on either tier. Landscape recorded with the trade-off: no platform
+ships lots natively at any tier, the app market monetizes exactly this
+depth ladder ($10 record-and-alert vs $24–199 library+FEFO), the one full
+open implementation (the ERP benchmark) is free in its community edition,
+and the traceability-lot-code compliance wave (July 2028) is why level-1
+capture stays OSS. Constraint: lot capture lives only on `FulfillmentLot`
+rows — no lot strings anywhere else, and OSS never grows quantities,
+expiry, or allocation.
+
+**Volume pricing: promotions = DTC consumers, price lists = B2B** — the
+one-sentence tier doctrine (`6.0-volume-pricing.md`). Fixed contracted
+ladders become a **price-row dimension**: `spree_prices.min_quantity`
+(integer default 1 — every existing row is a quantity-1 price, zero
+backfill; row identity gains the column; resolver picks the highest break
+≤ line quantity; ≤10 breaks; breaks require a price list in v1; a break
+ladder beats the list's ±% per variant — the market leader's stated
+precedence). Percentage ladders become **quantity bands on the list's ±%
+adjustment** (`spree_price_adjustment_tiers`: list × min_quantity ×
+percentage, falling back to the column) — this superseded, same day, a
+briefly-drafted promotions-based percent design: the implemented
+adjustment already treats percentage as *pricing* (computed on read, unit
+prices, never touching explicit rows), so bands answer "percent off what"
+with the implemented semantics, while marketing-visible volume discounts
+(strikethrough, D2C) remain promotion territory as a recorded deferred
+design (line-quantity rule + quantity-tiered percent calculator).
+Research verdict behind it: every platform with real volume pricing
+attaches tiers to the price record; nobody models them as list-matching
+rules; quantity RULES (MOQ/multiples) stay a sibling non-pricing axis
+everywhere — validating the existing quantity-rules split. Constraints:
+contracted tiers are never discounts, marketing discounts are never
+prices; price-reading callers must pass line quantity through
+`Pricing::Context`; exports must carry tier rows.
