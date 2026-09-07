@@ -79,7 +79,8 @@ One-time machine setup: Homebrew `postgresql@18` running on :5432 (with a `postg
 | Hosted seller panel at `/sellers` (single-node test) | `pnpm server:seller` to build `packages/seller-dashboard-starter/dist`, set `SPREE_SELLER_PANEL_DIST_PATH=<monorepo>/packages/seller-dashboard-starter/dist` in `server/.env` |
 | Broken beyond repair | `wt remove` and recreate — or `dropdb spree_dev_<branch>`, delete `server/`, re-run `pnpm wt:setup` |
 
-**The legacy Docker compose flow (`pnpm server:setup` / `server:dev` / `server:stop` etc.) is deprecated — never use it.** It exists only for spree-starter parity; it fights the worktree stack for ports and its teardown scripts wipe shared state.
+When working with worktrees, don't use the `pnpm server:dev` and other docker-based commands. 
+NEVER kill/shut off dev serves already running unless they are broken (eg. migrations didn't run, missing migrations).
 
 ---
 
@@ -97,6 +98,8 @@ One-time machine setup: Homebrew `postgresql@18` running on :5432 (with a `postg
 - DRY - Don't Repeat Yourself - before adding a new feature or functionality, check if it already exists in the codebase. If it does, reuse it instead of duplicating code. This helps to keep the codebase clean and maintainable, our goal is to minimize the number of lines of code, not to expand it without control
 - Be Paranoid - always assume that the code you are writing will be used in unexpected ways, and that users may try to break it. Security is another important aspect of development, and we should always be mindful of potential vulnerabilities and attack vectors. Always validate user input, sanitize data, and follow best practices for secure coding. Use tools like static analysis, code reviews, and penetration testing to identify and fix security issues before they become a problem. Always keep security in mind when designing new features or making changes to existing code.
 - Seller Panel and Admin Dashboard - dashboard is the reference, when adding features to Seller panel extract code to re-usable components in dashboard, move it to dashboard-ui/dashboard-core, import it in Seller Panel
+- Pull Request descriptions are public, never disclose any credentials, PII, sensitive data or local dev environment URLs
+- Pull Request descriptions should follow same guidelines as git commits - short, cohesive and short, use bullets to list changes / new features if it's a big PR
 
 ## Backend (Ruby)
 
@@ -104,7 +107,7 @@ One-time machine setup: Homebrew `postgresql@18` running on :5432 (with a `postg
 
 - All code namespaced under `Spree::` module
 - Follow Rails conventions and the Rails Security Guide
-- RESTful routes and action names, AVID adding custom non CRUD/RESTful actions, promote them to sub-controllers
+- RESTful routes and action names, AVOID adding custom non CRUD/RESTful actions, promote them to nested controllers instead
 - CanCanCan for authorization: listings use `accessible_by(current_ability, :show)`, other actions use `authorize!`
 - Always use scope fetching for security (e.g. `current_store.orders` not `Spree::Order`). This applies to **every** lookup in a controller, including the incidental ones — resolving a `reason_id` or `stock_location_id` from a create param through the model constant accepts an id belonging to another store. Reading it through `current_store.<association>` turns that into a 404, which is the cheapest defence against IDOR. `accessible_by(current_ability, ...)` is not a substitute: it filters by role, not by tenant.
 - Ransack for filtering/searching, Pagy for pagination
@@ -357,6 +360,8 @@ end
 - `typelize attr: :type` for computed/delegated attribute types
 - Never use `typelize_from` — it connects to the database
 - Customize via inheritance + `Spree.api.product_serializer = 'MyApp::ProductSerializer'`
+- NEVER create custom hash/arrays to represent associations or records inside the serializer - each record or a variant of a record (eg. lightweight variant of an existing serializer) should be it's own serializer
+- NEVER put too much logic in serializers, they should be lean and call models for custom methods
 
 ### Events System
 
