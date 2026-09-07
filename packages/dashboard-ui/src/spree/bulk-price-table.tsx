@@ -18,6 +18,10 @@ export interface BulkPriceRow {
   // user input or the API's canonical decimal. The table passes them through.
   amount?: string | null
   compareAt?: string | null
+  // How many quantity breaks sit above this row's price. Renders the tier
+  // button when the caller opted into the column
+  // (docs/plans/6.0-volume-pricing.md).
+  breakCount?: number
 }
 
 export interface BulkPriceTableLabels {
@@ -55,6 +59,12 @@ export interface BulkPriceTableLabels {
   priceAriaTemplate?: string
   /** Aria-label template for the compare-at input. `{label}` is replaced with the variant label. */
   compareAtAriaTemplate?: string
+  /** Column header over the quantity-break buttons. Omit to hide the column. */
+  tiers?: string
+  /** Label on a row's tier button. `{count}` is replaced with the break count. */
+  tiersWithCount?: string
+  /** Label on a row's tier button when the row carries no breaks yet. */
+  tiersEmpty?: string
 }
 
 export interface BulkPriceTableProps {
@@ -67,6 +77,12 @@ export interface BulkPriceTableProps {
   labels: BulkPriceTableLabels
   /** Called when the user commits a value to a cell. The id is the row id. */
   onChange: (rowId: string, field: 'amount' | 'compareAt', value: string | null) => void
+  /**
+   * Opens the row's quantity ladder. Supplying it (with `labels.tiers`) adds
+   * the tier column; the panel itself is the caller's — the table only says
+   * which row was asked for.
+   */
+  onOpenTiers?: (rowId: string) => void
 
   // Optional state for the toolbar + pagination footer. Omitting all of these
   // hides the toolbar/pagination entirely (use for in-memory single-page lists).
@@ -91,6 +107,7 @@ export function BulkPriceTable({
   decimal,
   labels,
   onChange,
+  onOpenTiers,
   search,
   onSearchChange,
   page,
@@ -166,8 +183,37 @@ export function BulkPriceTable({
           )
         },
       },
+      ...(onOpenTiers && labels.tiers
+        ? [
+            {
+              id: 'tiers',
+              header: () => <span className="block text-right">{labels.tiers}</span>,
+              cell: ({ row }) => {
+                const r = row.original
+                if (r.kind !== 'item') return null
+                const count = r.breakCount ?? 0
+                return (
+                  <div className="flex justify-end pr-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={count > 0 ? 'outline' : 'ghost'}
+                      className="h-7 px-2 text-xs"
+                      onClick={() => onOpenTiers(r.id)}
+                    >
+                      {count > 0
+                        ? (labels.tiersWithCount?.replace('{count}', String(count)) ??
+                          String(count))
+                        : (labels.tiersEmpty ?? '+')}
+                    </Button>
+                  </div>
+                )
+              },
+            } satisfies ColumnDef<BulkPriceRow>,
+          ]
+        : []),
     ],
-    [symbol, decimal, onChange, labels],
+    [symbol, decimal, onChange, onOpenTiers, labels],
   )
 
   const showToolbar =

@@ -3330,6 +3330,7 @@
               "price": "Prix",
               "product": "Produit",
               "sku": "SKU",
+              "tiers": "Paliers",
               "variant": "Variante"
             },
             "compare_at_aria": "Prix de comparaison pour {{label}}",
@@ -3405,6 +3406,23 @@
           "sheet_title_create": "Créer une liste de prix",
           "sheet_title_edit": "Modifier la liste de prix",
           "subtitle": "Tarification ciblée pour des groupes de clients, des régions ou des paliers de volume.",
+          "tiers": {
+            "add": "Ajouter un palier de quantité",
+            "add_short": "Ajouter",
+            "count_badge": "{{count}} paliers",
+            "count_badge_one": "{{count}} palier",
+            "duplicate_quantity": "Deux paliers ne peuvent pas commencer à la même quantité.",
+            "empty": "Aucun palier — cette déclinaison est facturée au même prix quelle que soit la quantité.",
+            "help": "À partir de chaque quantité, la ligne est facturée à ce prix unitaire. Une déclinaison à paliers est facturée uniquement ainsi — le pourcentage de la liste ne s’y applique pas.",
+            "invalid_rung": "Chaque palier a besoin d’une quantité supérieure à 1 et d’un prix unitaire.",
+            "quantity": "À partir de",
+            "remove": "Supprimer le palier à partir de {quantity}",
+            "save_failed": "Impossible d’enregistrer les paliers de quantité.",
+            "save_success_one": "{{count}} palier de quantité enregistré.",
+            "save_success_other": "{{count}} paliers de quantité enregistrés.",
+            "title": "Paliers de quantité — {{variant}}",
+            "unit_price": "Prix unitaire"
+          },
           "title": "Listes de prix",
           "unschedule": "Déplanifier",
           "unschedule_confirm": {

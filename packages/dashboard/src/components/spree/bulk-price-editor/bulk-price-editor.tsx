@@ -11,12 +11,15 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'rea
 import { useTranslation } from 'react-i18next'
 import { useCurrencyLocale } from '../../../hooks/use-currency-locale'
 import { useBulkUpsertPrices } from '../../../hooks/use-prices'
+import { MAXIMUM_QUANTITY_TIERS } from '../../../schemas/price-list'
+import { VariantTierDialog } from './variant-tier-dialog'
 
 const PAGE_SIZE = 50
 
 interface PriceListRowFromServer {
   id: string
   variant_id: string
+  min_quantity: number
   amount: string | null
   compare_at_amount: string | null
   variant?: {
@@ -42,6 +45,8 @@ interface CellEdit {
 interface BaselineRow extends BulkPriceRow {
   priceId?: string
   variantId?: string
+  /** Shown in the tier dialog's title, so the merchant knows which row. */
+  tierLabel?: string
 }
 
 type FilterShape = Record<string, string | number | boolean | string[] | null | undefined>
@@ -148,6 +153,10 @@ export function BulkPriceEditor({
         ...sanitizedFilter,
         ...(priceListId ? { price_list_id_eq: priceListId } : { price_list_id_null: true }),
         currency_eq: currency,
+        // One row per variant: the deeper rungs of a ladder are edited in
+        // the tier dialog, not as extra lines that read like duplicates
+        // (docs/plans/6.0-volume-pricing.md).
+        min_quantity_eq: 1,
         // `search` is a Ransack-whitelisted scope on Price that ORs
         // across the variant's SKU, parent product name, and option-value
         // presentations ("Red", "XL", …). 3-char floor lives in the scope.
@@ -162,6 +171,42 @@ export function BulkPriceEditor({
 
   const totalPages = data?.meta?.pages ?? 1
   const totalCount = data?.meta?.count ?? 0
+
+  const pageVariantIds = useMemo(
+    () =>
+      ((data?.data ?? []) as unknown as PriceListRowFromServer[])
+        .map((row) => row.variant_id)
+        .filter(Boolean),
+    [data],
+  )
+
+  // The rungs above the bottom one, for this page's variants only — one query
+  // rather than one per row, and none at all when this editor has no list to
+  // hold a ladder (docs/plans/6.0-volume-pricing.md).
+  const { data: breakData } = useQuery({
+    queryKey: useResourceKey('prices', {
+      breaks: priceListId ?? null,
+      currency,
+      variants: pageVariantIds.join(','),
+    }),
+    queryFn: () =>
+      adminClient.prices.list({
+        variant_id_in: pageVariantIds,
+        price_list_id_eq: priceListId,
+        currency_eq: currency,
+        min_quantity_gt: 1,
+        limit: pageVariantIds.length * MAXIMUM_QUANTITY_TIERS,
+      } as never),
+    enabled: !!priceListId && pageVariantIds.length > 0,
+  })
+
+  const breakCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const row of (breakData?.data ?? []) as unknown as PriceListRowFromServer[]) {
+      counts.set(row.variant_id, (counts.get(row.variant_id) ?? 0) + 1)
+    }
+    return counts
+  }, [breakData])
 
   const baselineRows = useMemo<BaselineRow[]>(() => {
     if (!data) return []
@@ -183,15 +228,20 @@ export function BulkPriceEditor({
         priceId: row.id,
         variantId: row.variant_id,
         variantLabel: variant.options_text ?? null,
+        tierLabel: [variant.product_name, variant.options_text].filter(Boolean).join(' — '),
         sku: variant.sku ?? null,
         amount: row.amount,
         compareAt: row.compare_at_amount,
+        breakCount: breakCounts.get(row.variant_id) ?? 0,
       })
     }
     return out
-  }, [data])
+  }, [data, breakCounts])
 
   const [edits, setEdits] = useState<Map<string, CellEdit>>(() => new Map())
+  // Which row's ladder is open. Held by row id rather than variant id so the
+  // dialog can name the product the merchant clicked.
+  const [tierRowId, setTierRowId] = useState<string | null>(null)
 
   // Reset page + edits whenever the upstream filters change — a different
   // list, currency, or product scope is a different working set; carrying
@@ -330,43 +380,77 @@ export function BulkPriceEditor({
     { search },
   )
 
+  const tierRow = tierRowId
+    ? baselineRows.find((row) => row.kind === 'item' && row.id === tierRowId)
+    : undefined
+
   return (
-    <BulkPriceTable
-      rows={rows}
-      symbol={symbol}
-      decimal={decimal}
-      onChange={handleChange}
-      search={search}
-      onSearchChange={(next) => {
-        setSearch(next)
-        setPage(1)
-      }}
-      page={page}
-      totalPages={totalPages}
-      onPageChange={setPage}
-      isLoading={isLoading}
-      labels={{
-        variant: t('admin.pages.products.price_lists.edit_prices.columns.variant'),
-        sku: t('admin.pages.products.price_lists.edit_prices.columns.sku'),
-        price: t('admin.pages.products.price_lists.edit_prices.columns.price'),
-        compareAt: t('admin.pages.products.price_lists.edit_prices.columns.compare_at_price'),
-        variantDefault: t('admin.pages.products.price_lists.edit_prices.variant_default'),
-        searchPlaceholder: t('admin.pages.products.price_lists.edit_prices.search_placeholder'),
-        countSummary,
-        loading: t('admin.common.loading'),
-        pageOf: t('admin.common.page_of', { page: '{page}', total: '{total}' }),
-        prev: t('admin.common.prev'),
-        next: t('admin.common.next'),
-        emptyMessage,
-        emptySearchMessage,
-        gridAriaLabel: t('admin.pages.products.price_lists.edit_prices.grid_aria'),
-        priceAriaTemplate: t('admin.pages.products.price_lists.edit_prices.price_aria', {
-          label: '{label}',
-        }),
-        compareAtAriaTemplate: t('admin.pages.products.price_lists.edit_prices.compare_at_aria', {
-          label: '{label}',
-        }),
-      }}
-    />
+    <>
+      <BulkPriceTable
+        rows={rows}
+        symbol={symbol}
+        decimal={decimal}
+        onChange={handleChange}
+        // Ladders live on a price list; base prices carry no breaks in v1, so
+        // the column simply does not appear there.
+        onOpenTiers={priceListId ? setTierRowId : undefined}
+        search={search}
+        onSearchChange={(next) => {
+          setSearch(next)
+          setPage(1)
+        }}
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        isLoading={isLoading}
+        labels={{
+          variant: t('admin.pages.products.price_lists.edit_prices.columns.variant'),
+          sku: t('admin.pages.products.price_lists.edit_prices.columns.sku'),
+          price: t('admin.pages.products.price_lists.edit_prices.columns.price'),
+          compareAt: t('admin.pages.products.price_lists.edit_prices.columns.compare_at_price'),
+          variantDefault: t('admin.pages.products.price_lists.edit_prices.variant_default'),
+          searchPlaceholder: t('admin.pages.products.price_lists.edit_prices.search_placeholder'),
+          countSummary,
+          loading: t('admin.common.loading'),
+          pageOf: t('admin.common.page_of', { page: '{page}', total: '{total}' }),
+          prev: t('admin.common.prev'),
+          next: t('admin.common.next'),
+          emptyMessage,
+          emptySearchMessage,
+          gridAriaLabel: t('admin.pages.products.price_lists.edit_prices.grid_aria'),
+          priceAriaTemplate: t('admin.pages.products.price_lists.edit_prices.price_aria', {
+            label: '{label}',
+          }),
+          compareAtAriaTemplate: t('admin.pages.products.price_lists.edit_prices.compare_at_aria', {
+            label: '{label}',
+          }),
+          tiers: priceListId
+            ? t('admin.pages.products.price_lists.edit_prices.columns.tiers')
+            : undefined,
+          tiersWithCount: t('admin.pages.products.price_lists.tiers.count_badge', {
+            count: '{count}' as never,
+          }),
+          tiersEmpty: t('admin.pages.products.price_lists.tiers.add_short'),
+        }}
+      />
+
+      {priceListId && tierRow?.variantId && (
+        <VariantTierDialog
+          open
+          onOpenChange={(next) => {
+            if (!next) setTierRowId(null)
+          }}
+          variantId={tierRow.variantId}
+          variantLabel={
+            tierRow.tierLabel || t('admin.pages.products.price_lists.edit_prices.variant_default')
+          }
+          priceListId={priceListId}
+          currency={currency}
+          decimal={decimal}
+          marketLocale={marketLocale}
+          symbol={symbol}
+        />
+      )}
+    </>
   )
 }
