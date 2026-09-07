@@ -57,6 +57,16 @@ module Spree
         total.positive? && payment_total >= total
       end
 
+      # What has to be paid before this purchase can be placed and
+      # dispatched — the whole total unless an arrangement collects only part
+      # of it up front. See {Spree::Purchases::AmountDueAtCheckout}, which is
+      # where a deposit or net terms would answer differently.
+      #
+      # @return [BigDecimal]
+      def amount_due_at_checkout
+        Spree.purchase_amount_due_at_checkout_service.new.call(purchase: self)
+      end
+
       # Total fulfillment discount applied by promotions, as a positive amount.
       #
       # @return [BigDecimal]
