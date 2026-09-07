@@ -8,7 +8,8 @@ module Spree
       hooks :validate, :after_update
 
       # @param price_list [Spree::PriceList]
-      # @param attributes [Hash] may carry `prices`
+      # @param attributes [Hash] may carry `prices` (each row optionally
+      #   carrying `min_quantity`) and `price_adjustment_tiers`
       # @return [Spree::ServiceModule::Result] value is the price list
       def perform(price_list:, attributes: {})
         super
@@ -80,6 +81,10 @@ module Spree
             variant_id: variant_id,
             currency: row[:currency],
             price_list_id: price_list.id,
+            # Absent means the ladder's bottom rung, which is every row
+            # written before quantity breaks existed
+            # (docs/plans/6.0-volume-pricing.md).
+            min_quantity: row[:min_quantity],
             amount: row[:amount],
             compare_at_amount: row[:compare_at_amount]
           }

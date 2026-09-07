@@ -257,6 +257,7 @@ module Spree
         admin_promotion_action_serializer: 'Spree::Api::V3::Admin::PromotionActionSerializer',
         admin_promotion_rule_serializer: 'Spree::Api::V3::Admin::PromotionRuleSerializer',
         admin_coupon_code_serializer: 'Spree::Api::V3::Admin::CouponCodeSerializer',
+        admin_price_adjustment_tier_serializer: 'Spree::Api::V3::Admin::PriceAdjustmentTierSerializer',
         admin_price_list_serializer: 'Spree::Api::V3::Admin::PriceListSerializer',
         admin_price_rule_serializer: 'Spree::Api::V3::Admin::PriceRuleSerializer',
         admin_resource_translations_serializer: 'Spree::Api::V3::Admin::ResourceTranslationsSerializer',

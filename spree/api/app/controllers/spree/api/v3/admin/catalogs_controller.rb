@@ -124,8 +124,12 @@ module Spree
                                         # An empty array clears the hand-entered
                                         # amounts — what switching to a
                                         # percentage sends.
-                                        { prices: [:id, :variant_id, :currency, :amount,
-                                                   :compare_at_amount] }
+                                        { prices: [:id, :variant_id, :currency, :min_quantity,
+                                                   :amount, :compare_at_amount] },
+                                        # Quantity bands on the percentage. The
+                                        # payload is the whole ladder, so an
+                                        # empty array clears it.
+                                        { price_adjustment_tiers: [:min_quantity, :percentage] }
                                       ])
             # `permit` drops an explicit null, but detaching has to be
             # distinguishable from saying nothing.

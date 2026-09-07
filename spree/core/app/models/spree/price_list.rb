@@ -42,6 +42,32 @@ module Spree
       assign_typed_association(:price_rules, rows)
     end
 
+    # Flat-payload writer for the percentage's quantity bands: the payload is
+    # the whole ladder, so a band the caller left out is one they removed.
+    # A merchant editing a ladder is editing one thing, and sending three
+    # rows to mean "these three, and only these" is how the editor reads.
+    #
+    # @param rows [Array<Hash>] `[{ min_quantity:, percentage: }, ...]`
+    # @return [void]
+    def price_adjustment_tiers=(rows)
+      first = Array(rows).first
+      return super if first.nil? || first.is_a?(Spree.base_class)
+
+      wanted = Array(rows).map { |row| row.respond_to?(:to_h) ? row.to_h.with_indifferent_access : row }
+      by_quantity = price_adjustment_tiers.index_by { |tier| tier.min_quantity.to_i }
+
+      kept = wanted.filter_map do |row|
+        quantity = row[:min_quantity].to_i
+        next if quantity.zero?
+
+        tier = by_quantity[quantity] || price_adjustment_tiers.build(min_quantity: quantity)
+        tier.percentage = row[:percentage]
+        tier
+      end
+
+      (price_adjustment_tiers - kept).each(&:mark_for_destruction)
+    end
+
     validates :name, presence: true
     validates :match_policy, presence: true, inclusion: { in: MATCH_POLICIES }
     # One live list per catalog; soft-deleted lists release the slot. Backed

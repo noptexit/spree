@@ -13,8 +13,9 @@ module Spree
           before_action :require_ids!, only: [:bulk_destroy]
           before_action :require_prices!, only: [:bulk_upsert]
 
-          # Bulk-upserts prices on the unique-key triple
-          # `(variant_id, currency, price_list_id)`.
+          # Bulk-upserts prices on the unique key
+          # `(variant_id, currency, price_list_id, min_quantity)` — one row per
+          # rung of a variant's ladder (docs/plans/6.0-volume-pricing.md).
           #
           # @return [void]
           def bulk_upsert
@@ -48,6 +49,16 @@ module Spree
                 message: 'Each row must reference a variant and price list in the current store.',
                 status: :unprocessable_content,
                 details: { rows: foreign }
+              )
+            end
+
+            over_cap = rows_over_break_cap(rows)
+            if over_cap.any?
+              return render_error(
+                code: 'too_many_breaks',
+                message: "A variant can carry at most #{Spree::Price::MAXIMUM_BREAKS_PER_VARIANT} quantity breaks on one price list.",
+                status: :unprocessable_content,
+                details: { rows: over_cap }
               )
             end
 
@@ -101,13 +112,51 @@ module Spree
           # scopes so a foreign or unknown id 404s instead of binding the
           # price to another store's record.
           def permitted_params
-            permitted = params.permit(*model_additional_permitted_attributes, :variant_id, :currency, :amount, :compare_at_amount, :price_list_id)
+            permitted = params.permit(*model_additional_permitted_attributes, :variant_id, :currency, :min_quantity, :amount, :compare_at_amount, :price_list_id)
             permitted[:variant_id] = store_variants.find_by_prefix_id!(permitted[:variant_id]).id if permitted[:variant_id].present?
             permitted[:price_list_id] = store_price_lists.find_by_prefix_id!(permitted[:price_list_id]).id if permitted[:price_list_id].present?
             permitted
           end
 
           private
+
+          # Which incoming rows would push a ladder past the cap. This path
+          # writes in SQL, so the model validation never runs — the check has
+          # to happen where the rows can still be named back to the caller.
+          #
+          # Counted against what is already stored, minus the rungs this batch
+          # is itself rewriting, so re-sending a full ladder is never refused
+          # for being the size it already is.
+          #
+          # @param rows [Array<Hash>]
+          # @return [Array<Hash>] `[{ index: }, ...]` for the offending rows
+          def rows_over_break_cap(rows)
+            ladders = Hash.new { |hash, key| hash[key] = Set.new }
+
+            rows.each_with_index do |row, index|
+              next if row[:price_list_id].blank?
+              next if row[:amount].blank?
+
+              ladders[[row[:variant_id].to_s, row[:currency], row[:price_list_id].to_s]] << index
+            end
+            return [] if ladders.empty?
+
+            ladders.filter_map do |(variant_id, currency, price_list_id), indexes|
+              incoming = rows.values_at(*indexes).map { |row| quantity_of(row) }.uniq
+              stored = Spree::Price.where(
+                variant_id: variant_id, currency: currency, price_list_id: price_list_id
+              ).where.not(amount: nil).pluck(:min_quantity)
+
+              next if (stored | incoming).size <= Spree::Price::MAXIMUM_BREAKS_PER_VARIANT
+
+              indexes.map { |index| { index: index } }
+            end.flatten
+          end
+
+          def quantity_of(row)
+            quantity = row[:min_quantity].to_i
+            quantity.positive? ? quantity : 1
+          end
 
           def store_variants
             current_store.variants.accessible_by(current_ability, :update)
@@ -140,6 +189,7 @@ module Spree
               variant_id: decode_id(row[:variant_id]),
               price_list_id: row.key?(:price_list_id) ? decode_id(row[:price_list_id]) : nil,
               currency: row[:currency],
+              min_quantity: row[:min_quantity],
               amount: row[:amount],
               compare_at_amount: row[:compare_at_amount]
             }.compact

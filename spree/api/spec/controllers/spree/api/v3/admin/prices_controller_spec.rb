@@ -324,6 +324,74 @@ RSpec.describe Spree::Api::V3::Admin::PricesController, type: :controller do
     end
   end
 
+  # Quantity breaks: a variant's rows on one list, each keyed by the quantity
+  # it applies from (docs/plans/6.0-volume-pricing.md).
+  describe 'POST #bulk_upsert with quantity breaks' do
+    def upsert(rows)
+      post :bulk_upsert, params: { prices: rows }, as: :json
+    end
+
+    it 'writes a ladder as separate rows rather than overwriting one' do
+      upsert([
+        { variant_id: variant.prefixed_id, currency: 'USD', price_list_id: price_list.prefixed_id, amount: '10.00' },
+        { variant_id: variant.prefixed_id, currency: 'USD', price_list_id: price_list.prefixed_id, min_quantity: 24, amount: '9.00' },
+        { variant_id: variant.prefixed_id, currency: 'USD', price_list_id: price_list.prefixed_id, min_quantity: 96, amount: '8.00' }
+      ])
+
+      expect(response).to have_http_status(:ok)
+      rows = Spree::Price.where(variant: variant, currency: 'USD', price_list: price_list).order(:min_quantity)
+      expect(rows.pluck(:min_quantity, :amount)).to eq([[1, 10.0], [24, 9.0], [96, 8.0]])
+    end
+
+    it 'updates one rung without disturbing the others' do
+      upsert([
+        { variant_id: variant.prefixed_id, currency: 'USD', price_list_id: price_list.prefixed_id, amount: '10.00' },
+        { variant_id: variant.prefixed_id, currency: 'USD', price_list_id: price_list.prefixed_id, min_quantity: 24, amount: '9.00' }
+      ])
+      upsert([
+        { variant_id: variant.prefixed_id, currency: 'USD', price_list_id: price_list.prefixed_id, min_quantity: 24, amount: '8.50' }
+      ])
+
+      rows = Spree::Price.where(variant: variant, currency: 'USD', price_list: price_list).order(:min_quantity)
+      expect(rows.pluck(:min_quantity, :amount)).to eq([[1, 10.0], [24, 8.5]])
+    end
+
+    # This path writes in SQL, so the model validation never runs — the cap
+    # has to be enforced where the offending rows can still be named.
+    it 'refuses a batch that would push the ladder past the cap' do
+      rungs = (1..Spree::Price::MAXIMUM_BREAKS_PER_VARIANT + 1).map do |rung|
+        {
+          variant_id: variant.prefixed_id, currency: 'USD',
+          price_list_id: price_list.prefixed_id, min_quantity: rung, amount: '9.00'
+        }
+      end
+
+      upsert(rungs)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(json_response['error']['code']).to eq('too_many_breaks')
+      expect(Spree::Price.where(variant: variant, currency: 'USD', price_list: price_list)).to be_empty
+    end
+
+    # Re-sending a full ladder must not be refused for being the size it
+    # already is.
+    it 'accepts a batch that rewrites a full ladder in place' do
+      full = (1..Spree::Price::MAXIMUM_BREAKS_PER_VARIANT).map do |rung|
+        {
+          variant_id: variant.prefixed_id, currency: 'USD',
+          price_list_id: price_list.prefixed_id, min_quantity: rung, amount: '9.00'
+        }
+      end
+      upsert(full)
+      expect(response).to have_http_status(:ok)
+
+      upsert(full.map { |row| row.merge(amount: '8.00') })
+
+      expect(response).to have_http_status(:ok)
+      expect(Spree::Price.where(variant: variant, currency: 'USD', price_list: price_list).pluck(:amount).uniq).to eq([8.0])
+    end
+  end
+
   describe 'POST #create' do
     it 'creates a price on a variant in the current store' do
       eur_variant = create(:variant, product: product)

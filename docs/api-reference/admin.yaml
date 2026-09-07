@@ -15650,6 +15650,7 @@ paths:
                   currently_active: false
                   products_count: 0
                   prices_count: 0
+                  price_adjustment_tiers: []
                 - id: pl_gbHJdmfrXB
                   name: Holiday
                   description:
@@ -15667,6 +15668,7 @@ paths:
                   currently_active: false
                   products_count: 0
                   prices_count: 0
+                  price_adjustment_tiers: []
                 meta:
                   page: 1
                   limit: 25
@@ -15784,6 +15786,7 @@ paths:
                 currently_active: false
                 products_count: 1
                 prices_count: 2
+                price_adjustment_tiers: []
               schema:
                 "$ref": "#/components/schemas/PriceList"
         '422':
@@ -15944,6 +15947,7 @@ paths:
                 currently_active: false
                 products_count: 0
                 prices_count: 0
+                price_adjustment_tiers: []
               schema:
                 "$ref": "#/components/schemas/PriceList"
         '404':
@@ -16022,6 +16026,7 @@ paths:
                 currently_active: false
                 products_count: 0
                 prices_count: 0
+                price_adjustment_tiers: []
               schema:
                 "$ref": "#/components/schemas/PriceList"
       requestBody:
@@ -16205,6 +16210,7 @@ paths:
                 currently_active: true
                 products_count: 0
                 prices_count: 0
+                price_adjustment_tiers: []
               schema:
                 "$ref": "#/components/schemas/PriceList"
   "/api/v3/admin/price_lists/{id}/deactivate":
@@ -16271,6 +16277,7 @@ paths:
                 currently_active: false
                 products_count: 0
                 prices_count: 0
+                price_adjustment_tiers: []
               schema:
                 "$ref": "#/components/schemas/PriceList"
   "/api/v3/admin/prices":
@@ -16379,6 +16386,7 @@ paths:
                   display_amount: "$19.99"
                   display_compare_at_amount:
                   price_list_id:
+                  min_quantity: 1
                   variant_id: variant_UkLWZg9DAJ
                   created_at: '2026-01-15T12:00:00.000Z'
                   updated_at: '2026-01-15T12:00:00.000Z'
@@ -16391,6 +16399,7 @@ paths:
                   display_amount: "$19.99"
                   display_compare_at_amount:
                   price_list_id:
+                  min_quantity: 1
                   variant_id: variant_gbHJdmfrXB
                   created_at: '2026-01-15T12:00:00.000Z'
                   updated_at: '2026-01-15T12:00:00.000Z'
@@ -16403,6 +16412,7 @@ paths:
                   display_amount: "$5.00"
                   display_compare_at_amount:
                   price_list_id: pl_UkLWZg9DAJ
+                  min_quantity: 1
                   variant_id: variant_gbHJdmfrXB
                   created_at: '2026-01-15T12:00:00.000Z'
                   updated_at: '2026-01-15T12:00:00.000Z'
@@ -16486,6 +16496,7 @@ paths:
                 display_amount: "€9.99"
                 display_compare_at_amount:
                 price_list_id:
+                min_quantity: 1
                 variant_id: variant_EfhxLZ9ck8
                 created_at: '2026-01-15T12:00:00.000Z'
                 updated_at: '2026-01-15T12:00:00.000Z'
@@ -16574,6 +16585,7 @@ paths:
                 display_amount: "$5.00"
                 display_compare_at_amount:
                 price_list_id: pl_UkLWZg9DAJ
+                min_quantity: 1
                 variant_id: variant_gbHJdmfrXB
                 created_at: '2026-01-15T12:00:00.000Z'
                 updated_at: '2026-01-15T12:00:00.000Z'
@@ -16640,6 +16652,7 @@ paths:
                 display_amount: "$12.34"
                 display_compare_at_amount:
                 price_list_id: pl_UkLWZg9DAJ
+                min_quantity: 1
                 variant_id: variant_gbHJdmfrXB
                 created_at: '2026-01-15T12:00:00.000Z'
                 updated_at: '2026-01-15T12:00:00.000Z'
@@ -17460,6 +17473,7 @@ paths:
                     display_amount: "$19.99"
                     display_compare_at_amount:
                     price_list_id:
+                    min_quantity: 1
                     variant_id: variant_UkLWZg9DAJ
                     created_at: '2026-01-15T12:00:00.000Z'
                     updated_at: '2026-01-15T12:00:00.000Z'
@@ -17854,6 +17868,7 @@ paths:
                   display_amount: "$19.99"
                   display_compare_at_amount:
                   price_list_id:
+                  min_quantity: 1
                   variant_id: variant_UkLWZg9DAJ
                   created_at: '2026-01-15T12:00:00.000Z'
                   updated_at: '2026-01-15T12:00:00.000Z'
@@ -17977,6 +17992,7 @@ paths:
                   display_amount: "$19.99"
                   display_compare_at_amount:
                   price_list_id:
+                  min_quantity: 1
                   variant_id: variant_UkLWZg9DAJ
                   created_at: '2026-01-15T12:00:00.000Z'
                   updated_at: '2026-01-15T12:00:00.000Z'
@@ -27876,6 +27892,7 @@ paths:
                     display_amount: "$100.00"
                     display_compare_at_amount:
                     price_list_id:
+                    min_quantity: 1
                     variant_id: variant_UkLWZg9DAJ
                     created_at: '2026-01-15T12:00:00.000Z'
                     updated_at: '2026-01-15T12:00:00.000Z'
@@ -27894,6 +27911,7 @@ paths:
                   catalog_price:
                     currency: USD
                     source: automatic
+                    break_count: 0
                     amount: '80.0'
                     display_amount: "$80.00"
                 meta:
@@ -37228,6 +37246,8 @@ components:
           type: string
         source:
           type: string
+        break_count:
+          type: number
         amount:
           type: string
         display_amount:
@@ -37235,6 +37255,7 @@ components:
       required:
       - currency
       - source
+      - break_count
       - amount
       - display_amount
       x-typelizer: true
@@ -41168,6 +41189,20 @@ components:
       - updated_at
       - created_at
       x-typelizer: true
+    PriceAdjustmentTier:
+      type: object
+      properties:
+        id:
+          type: string
+        min_quantity:
+          type: number
+        percentage:
+          type: string
+      required:
+      - id
+      - min_quantity
+      - percentage
+      x-typelizer: true
     PriceHistory:
       type: object
       properties:
@@ -41246,6 +41281,10 @@ components:
           type: number
         prices_count:
           type: number
+        price_adjustment_tiers:
+          type: array
+          items:
+            "$ref": "#/components/schemas/PriceAdjustmentTier"
         price_rules:
           type: array
           items:
@@ -41268,6 +41307,7 @@ components:
       - currently_active
       - products_count
       - prices_count
+      - price_adjustment_tiers
       x-typelizer: true
     PriceRule:
       type: object
@@ -41342,6 +41382,8 @@ components:
         price_list_id:
           type: string
           nullable: true
+        min_quantity:
+          type: number
         variant_id:
           type: string
           nullable: true
@@ -41361,6 +41403,7 @@ components:
       - display_amount
       - display_compare_at_amount
       - price_list_id
+      - min_quantity
       - variant_id
       - created_at
       - updated_at

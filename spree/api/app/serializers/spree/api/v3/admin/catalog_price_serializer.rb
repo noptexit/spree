@@ -16,9 +16,12 @@ module Spree
           _attributes.delete(:id)
 
           typelize amount: :string, display_amount: :string,
-                   currency: :string, source: :string
+                   currency: :string, source: :string, break_count: :number
 
-          attributes :currency, :source
+          # How many quantity tiers sit above this amount, so the view can say
+          # "and three more from a case up" rather than showing one figure as
+          # though it were the only one.
+          attributes :currency, :source, :break_count
 
           attribute :amount do |price|
             price.amount.to_s
