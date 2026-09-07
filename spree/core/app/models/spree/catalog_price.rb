@@ -21,6 +21,10 @@ module Spree
     attribute :amount, :decimal
     attribute :currency, :string
     attribute :source, :string
+    # How many quantity tiers sit above this amount — breaks on the list's own
+    # rows, or bands on its percentage. Zero for a variant priced at one
+    # figure whatever the order size (docs/plans/6.0-volume-pricing.md).
+    attribute :break_count, :integer, default: 0
 
     validates :source, inclusion: { in: SOURCES }
 
@@ -29,6 +33,12 @@ module Spree
     # @return [Boolean]
     def from_agreement?
       source != 'base'
+    end
+
+    # Whether the amount is the bottom of a ladder rather than the only price.
+    # @return [Boolean]
+    def tiered?
+      break_count.to_i.positive?
     end
 
     # @return [Spree::Money]

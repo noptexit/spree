@@ -6,7 +6,8 @@ module Spree
     # `spree_prices` is guarded by two partial unique indexes on PG/SQLite
     # (collapsed to one composite index on MySQL):
     #   - base prices (price_list_id IS NULL): unique on (variant_id, currency)
-    #   - overrides   (price_list_id IS NOT NULL): unique on (variant_id, currency, price_list_id)
+    #   - overrides   (price_list_id IS NOT NULL): unique on
+    #     (variant_id, currency, price_list_id, min_quantity)
     # A single `upsert_all` can only target one index, so rows ship in two
     # batches — base vs override — each routed to the correct ON CONFLICT.
     #
@@ -19,19 +20,23 @@ module Spree
 
       # Two partial unique indexes guard `spree_prices` on PG/SQLite:
       #   - base prices (price_list_id IS NULL): unique on (variant_id, currency)
-      #   - overrides   (price_list_id IS NOT NULL): unique on (variant_id, currency, price_list_id)
+      #   - overrides   (price_list_id IS NOT NULL): unique on
+      #     (variant_id, currency, price_list_id, min_quantity)
       # A single `upsert_all` can only target one index, so base-price rows
       # and override rows ship in separate batches.
       BASE_UNIQUE_BY = %i[variant_id currency].freeze
-      OVERRIDE_UNIQUE_BY = %i[variant_id currency price_list_id].freeze
+      OVERRIDE_UNIQUE_BY = %i[variant_id currency price_list_id min_quantity].freeze
 
       # @param rows [Array<Hash>] each row must carry
-      #   `variant_id`, `currency`, and `amount`; `price_list_id` and
-      #   `compare_at_amount` are optional. A blank `amount` is treated
-      #   as "clear this price."
+      #   `variant_id`, `currency`, and `amount`; `price_list_id`,
+      #   `min_quantity` and `compare_at_amount` are optional. A blank
+      #   `amount` is treated as "clear this price", and a blank
+      #   `min_quantity` means the ladder's bottom rung.
       # @return [Spree::ServiceModule::Result] success carries
       #   `{ price_count: N }` — the number of rows passed to
-      #   `upsert_all`.
+      #   `upsert_all`. The break cap is enforced by the caller that can
+      #   report which rows crossed it — see the admin prices controller —
+      #   since this path writes in SQL and runs no model validations.
       def call(rows:)
         rows = Array(rows).map { |r| r.with_indifferent_access }
         keyed = rows.select { |r| r[:variant_id].present? && r[:currency].present? }
@@ -39,11 +44,11 @@ module Spree
         # triple in one statement ("ON CONFLICT DO UPDATE command cannot
         # affect row a second time"). Last-write-wins: keep the last
         # occurrence of each triple.
-        deduped = keyed.reverse.uniq { |r| [r[:variant_id], r[:currency], r[:price_list_id]] }.reverse
+        deduped = keyed.reverse.uniq { |r| row_key(r) }.reverse
         upsert_rows, clear_rows = deduped.partition { |r| r[:amount].present? }
 
         payload = build_payload(upsert_rows)
-        affected_keys = deduped.map { |r| [r[:variant_id], r[:currency], r[:price_list_id]] }
+        affected_keys = deduped.map { |r| row_key(r) }
 
         return success(price_count: 0) if affected_keys.empty?
 
@@ -65,7 +70,7 @@ module Spree
           # `Price -> Variant -> Product` `touch:` chain never fires —
           # downstream caches (`cache_key_with_version`) would stay stale.
           # Re-trigger the chain with one `.touch` per affected variant.
-          touch_variants(affected_keys.map(&:first).uniq)
+          touch_variants(affected_keys.map { |k| k[0] }.uniq)
         end
 
         success(price_count: payload.length)
@@ -95,12 +100,25 @@ module Spree
             variant_id: row[:variant_id],
             currency: row[:currency],
             price_list_id: row[:price_list_id],
+            min_quantity: quantity_of(row),
             amount: parse_amount(row[:amount]),
             compare_at_amount: parse_amount(row[:compare_at_amount]),
             created_at: now,
             updated_at: now
           }
         end
+      end
+
+      # A row identifies one rung of one ladder. Rows arriving without a
+      # quantity address the bottom rung, which is every row written before
+      # breaks existed (docs/plans/6.0-volume-pricing.md).
+      def row_key(row)
+        [row[:variant_id], row[:currency], row[:price_list_id], quantity_of(row)]
+      end
+
+      def quantity_of(row)
+        quantity = row[:min_quantity].to_i
+        quantity.positive? ? quantity : 1
       end
 
       # Parses locale-aware decimal input ("1.234,56" in DE, "1,234.56"
@@ -113,19 +131,20 @@ module Spree
       end
 
       def sweep(affected_keys, clear_rows)
-        cleared_keys = clear_rows.map { |r| [r[:variant_id], r[:currency], r[:price_list_id]] }.to_set
+        cleared_keys = clear_rows.map { |r| row_key(r) }.to_set
         affected_set = affected_keys.to_set
 
         candidates = Spree::Price
           .where(
-            variant_id: affected_keys.map(&:first).uniq,
+            variant_id: affected_keys.map { |k| k[0] }.uniq,
             currency: affected_keys.map { |k| k[1] }.uniq,
-            price_list_id: affected_keys.map(&:last).uniq
+            price_list_id: affected_keys.map { |k| k[2] }.uniq,
+            min_quantity: affected_keys.map { |k| k[3] }.uniq
           )
-          .pluck(:id, :variant_id, :currency, :price_list_id, :amount)
+          .pluck(:id, :variant_id, :currency, :price_list_id, :min_quantity, :amount)
 
-        doomed_ids = candidates.filter_map do |id, variant_id, currency, price_list_id, amount|
-          key = [variant_id, currency, price_list_id]
+        doomed_ids = candidates.filter_map do |id, variant_id, currency, price_list_id, min_quantity, amount|
+          key = [variant_id, currency, price_list_id, min_quantity]
           next unless affected_set.include?(key)
           next id if amount.nil?
           next id if cleared_keys.include?(key)

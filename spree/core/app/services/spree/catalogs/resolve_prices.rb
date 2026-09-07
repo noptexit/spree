@@ -64,12 +64,24 @@ module Spree
         base = rows.detect { |row| row.price_list_id.nil? }
 
         if price_list
-          explicit = rows.detect { |row| row.price_list_id == price_list.id }
-          return build(explicit, 'explicit') if explicit
+          list_rows = rows.select { |row| row.price_list_id == price_list.id }
+          # The bottom rung, because this reading makes no purchase — the
+          # deeper rungs are reported as a count so the view can say "and
+          # three more from a case up" without pretending to know the size of
+          # an order nobody has placed.
+          explicit = list_rows.min_by { |row| row.min_quantity.to_i }
+          return build(explicit, 'explicit', break_count: list_rows.count { |row| row.min_quantity.to_i > 1 }) if explicit
+
           # Derived by the list itself, so the amount a merchant reads here is
           # the one the pricing resolver charges — one formula, not two.
-          derived = price_list.automatic_pricing? ? price_list.derived_price_from(base) : nil
-          return build(derived, 'automatic') if derived
+          derived = price_list.automatic_pricing? ? price_list.derived_price_from(base, 1) : nil
+          return build(derived, 'automatic', break_count: band_count) if derived
+
+          # A list whose percentage only starts at a quantity charges the base
+          # price for a single unit, and says so — with the bands counted, so
+          # the reading is "base now, and less from a case up" rather than a
+          # bare base price that hides the agreement.
+          return build(base, 'base', break_count: band_count) if base && band_count.positive?
         end
 
         base && build(base, 'base')
@@ -111,8 +123,16 @@ module Spree
           group_by(&:variant_id)
       end
 
-      def build(price, source)
-        Spree::CatalogPrice.new(amount: price.amount, currency: price.currency, source: source)
+      # How many bands this list's percentage carries above quantity 1.
+      # @return [Integer]
+      def band_count
+        price_list ? price_list.price_adjustment_tiers.size : 0
+      end
+
+      def build(price, source, break_count: 0)
+        Spree::CatalogPrice.new(
+          amount: price.amount, currency: price.currency, source: source, break_count: break_count
+        )
       end
     end
   end

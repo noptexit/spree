@@ -21,6 +21,10 @@ module Spree
     has_many :price_rules, class_name: 'Spree::PriceRule', autosave: true, dependent: :destroy
     alias rules price_rules
     has_many :prices, class_name: 'Spree::Price', dependent: :destroy_async
+    # The higher bands of this list's percentage adjustment; the column is its
+    # quantity-1 value (docs/plans/6.0-volume-pricing.md).
+    has_many :price_adjustment_tiers, -> { by_quantity }, class_name: 'Spree::PriceAdjustmentTier',
+             inverse_of: :price_list, autosave: true, dependent: :destroy
     has_many :variants, -> { distinct }, through: :prices, source: :variant
     has_many :products, -> { distinct }, through: :variants, source: :product
     alias price_list_products products
@@ -169,16 +173,37 @@ module Spree
       # Zero is no adjustment at all: deriving base × 1.0 would stamp every
       # price with this list's id while changing nothing, and the dashboard
       # has no "0%" to show. It reads as a fixed list.
-      price_adjustment_percentage.present? && !price_adjustment_percentage.zero?
+      #
+      # A list whose column is blank but which carries bands still prices
+      # automatically — it just prices nothing until a line reaches the first
+      # band, which is the "no discount under a case" agreement.
+      percentage_present?(price_adjustment_percentage) || price_adjustment_tiers.any?
     end
 
-    # What a base price is multiplied by to derive this list's price:
-    # -15% gives 0.85, +10% gives 1.1.
+    # This list's percentage for a line of the given size: the deepest band it
+    # reaches, or the list's own column below the first band. Quantity-1 (or
+    # unknown) means the column, which is what a list carrying no bands always
+    # answers (docs/plans/6.0-volume-pricing.md).
+    #
+    # @param quantity [Integer, nil]
     # @return [BigDecimal, nil]
-    def adjustment_factor
-      return if price_adjustment_percentage.nil?
+    def adjustment_percentage_for(quantity = nil)
+      band = band_for(quantity)
+      return band.percentage if band
 
-      1 + (price_adjustment_percentage / 100)
+      price_adjustment_percentage
+    end
+
+    # What a base price is multiplied by to derive this list's price at the
+    # given quantity: -15% gives 0.85, +10% gives 1.1.
+    #
+    # @param quantity [Integer, nil]
+    # @return [BigDecimal, nil]
+    def adjustment_factor(quantity = nil)
+      percentage = adjustment_percentage_for(quantity)
+      return if percentage.nil?
+
+      1 + (percentage / 100)
     end
 
     # This list's price for a base price, derived rather than stored: the base
@@ -192,20 +217,30 @@ module Spree
     # reading an agreement and a shopper being charged cannot disagree.
     #
     # @param base [Spree::Price] the variant's base price
-    # @return [Spree::Price, nil] nil when the base carries no amount
-    def derived_price_from(base)
+    # @param quantity [Integer, nil] the line's size, which picks the band
+    # @return [Spree::Price, nil] nil when the base carries no amount, or when
+    #   no band applies at this quantity and the list has no column of its own
+    def derived_price_from(base, quantity = nil)
       return if base.nil? || base.amount.nil?
+
+      factor = adjustment_factor(quantity)
+      # A bands-only list below its first band adjusts nothing, so it prices
+      # this line no more than a list holding no row for the variant does —
+      # the walk moves on rather than stamping the base price with this
+      # list's id.
+      return if factor.nil? || factor == 1
 
       compare_at =
         if adjust_compare_at && base.compare_at_amount.present?
-          Spree::Money::Rounding.to_currency(base.compare_at_amount * adjustment_factor, base.currency)
+          Spree::Money::Rounding.to_currency(base.compare_at_amount * factor, base.currency)
         end
 
       Spree::Price.new(
         variant_id: base.variant_id,
         currency: base.currency,
-        amount: Spree::Money::Rounding.to_currency(base.amount * adjustment_factor, base.currency),
+        amount: Spree::Money::Rounding.to_currency(base.amount * factor, base.currency),
         compare_at_amount: compare_at,
+        min_quantity: band_for(quantity)&.min_quantity || 1,
         price_list_id: id
       )
     end
@@ -234,7 +269,10 @@ module Spree
       variant_ids = Spree::Variant.eligible.where(product_id: product_ids).distinct.pluck(:id)
       return if variant_ids.empty?
 
-      existing = prices.where(variant_id: variant_ids)
+      # Only the bottom rung counts as "already here": a variant priced solely
+      # from a case up still needs its quantity-1 placeholder, or the editor
+      # has no row to show the ladder under.
+      existing = prices.where(variant_id: variant_ids, min_quantity: 1)
                        .pluck(:variant_id, :currency)
                        .to_set
 
@@ -248,6 +286,7 @@ module Spree
             variant_id: variant_id,
             currency: currency,
             amount: nil,
+            min_quantity: 1,
             price_list_id: id,
             created_at: now,
             updated_at: now
@@ -266,7 +305,9 @@ module Spree
     # Removes products from the list. Hard-deletes their prices so the
     # unique index doesn't block re-adding the same products later
     # (acts_as_paranoid would leave soft-deleted rows blocking the
-    # `(variant_id, currency, price_list_id)` slot).
+    # `(variant_id, currency, price_list_id, min_quantity)` slot). Every rung
+    # of a variant's ladder goes with it — removing a product from a list
+    # removes what the list charged for it, at every quantity.
     #
     # @param product_ids [Array<String>] raw product PKs
     # @return [void]
@@ -294,7 +335,7 @@ module Spree
 
       # Get current values for comparison
       price_ids = prices_attributes.map { |a| a[:id] || a['id'] }.compact.map(&:to_i)
-      current_values = prices.where(id: price_ids).pluck(:id, :amount, :compare_at_amount).to_h { |id, amount, compare_at| [id, { amount: amount, compare_at_amount: compare_at }] }
+      current_values = prices.where(id: price_ids).pluck(:id, :amount, :compare_at_amount, :min_quantity).to_h { |id, amount, compare_at, min_quantity| [id, { amount: amount, compare_at_amount: compare_at, min_quantity: min_quantity }] }
 
       prices_attributes.each do |attrs|
         attrs = (attrs.respond_to?(:to_unsafe_h) ? attrs.to_unsafe_h : attrs.to_h).with_indifferent_access
@@ -324,6 +365,10 @@ module Spree
           currency: attrs[:currency],
           amount: amount,
           compare_at_amount: compare_at_amount,
+          # Carried from the stored row rather than the payload: this path
+          # edits amounts on rungs that already exist, and a row's quantity is
+          # not something an amount edit may move.
+          min_quantity: current[:min_quantity],
           price_list_id: id
         }
 
@@ -342,6 +387,23 @@ module Spree
     end
 
     private
+
+    # The deepest band this quantity reaches, or nil when it reaches none.
+    # Read off the loaded association so pricing a page of variants against
+    # one list does not re-query per row.
+    # @param quantity [Integer, nil]
+    # @return [Spree::PriceAdjustmentTier, nil]
+    def band_for(quantity)
+      line_quantity = quantity.to_i
+      return if line_quantity < 2
+
+      price_adjustment_tiers.select { |tier| tier.min_quantity <= line_quantity }.max_by(&:min_quantity)
+    end
+
+    # Zero is not an adjustment — see #automatic_pricing?.
+    def percentage_present?(percentage)
+      percentage.present? && !percentage.zero?
+    end
 
     def apply_pending_rules
       flush_pending_typed_association(:price_rules)
@@ -369,9 +431,12 @@ module Spree
     # whole store on sale while its product list changed nothing. So the
     # feature exists only inside an agreement.
     def percentage_requires_catalog
-      return if price_adjustment_percentage.nil? || catalog_id.present?
+      return if catalog_id.present?
 
-      errors.add(:price_adjustment_percentage, :requires_catalog)
+      # Bands are the same percentage asked at a quantity, so they are refused
+      # on a standalone list for the same reason the column is.
+      errors.add(:price_adjustment_percentage, :requires_catalog) if price_adjustment_percentage.present?
+      errors.add(:price_adjustment_tiers, :requires_catalog) if price_adjustment_tiers.any?
     end
 
     def starts_at_before_ends_at

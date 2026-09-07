@@ -198,6 +198,68 @@ describe Spree::Price, type: :model do
 
       it { is_expected.to be_valid }
     end
+
+    # Quantity breaks (docs/plans/6.0-volume-pricing.md).
+    describe 'min_quantity' do
+      let(:amount) { 10 }
+      let(:price_list) { create(:price_list) }
+
+      it 'defaults to the ladder\'s bottom rung' do
+        expect(described_class.new.min_quantity).to eq(1)
+      end
+
+      it 'refuses a quantity below one' do
+        subject.min_quantity = 0
+
+        expect(subject).not_to be_valid
+        expect(subject.errors.messages[:min_quantity]).to be_present
+      end
+
+      # A quantity-dependent shop price would make every product page
+      # quantity-dependent, which v1 deliberately does not open.
+      it 'refuses a break with no price list' do
+        subject.min_quantity = 24
+
+        expect(subject).not_to be_valid
+        expect(subject.errors.messages[:min_quantity]).to include('quantity breaks can only be set on a price list')
+      end
+
+      it 'accepts a break on a price list' do
+        subject.assign_attributes(min_quantity: 24, price_list: price_list)
+
+        expect(subject).to be_valid
+      end
+
+      it 'refuses a ladder past the cap' do
+        (1..Spree::Price::MAXIMUM_BREAKS_PER_VARIANT).each do |rung|
+          create(:price, variant: variant, currency: 'USD', amount: 10, price_list: price_list, min_quantity: rung)
+        end
+
+        eleventh = build(:price, variant: variant, currency: 'USD', amount: 9, price_list: price_list, min_quantity: 99)
+
+        expect(eleventh).not_to be_valid
+        expect(eleventh.errors.messages[:min_quantity].first).to include('at most 10')
+      end
+
+      # The cap counts a variant's rungs on one list in one currency, so a
+      # second currency is a ladder of its own.
+      it 'counts the cap per currency' do
+        (1..Spree::Price::MAXIMUM_BREAKS_PER_VARIANT).each do |rung|
+          create(:price, variant: variant, currency: 'USD', amount: 10, price_list: price_list, min_quantity: rung)
+        end
+
+        expect(build(:price, variant: variant, currency: 'EUR', amount: 9, price_list: price_list, min_quantity: 24)).to be_valid
+      end
+    end
+
+    describe '#quantity_break?' do
+      let(:amount) { 10 }
+
+      it 'is false for the bottom rung and true above it' do
+        expect(build(:price, min_quantity: 1)).not_to be_quantity_break
+        expect(build(:price, min_quantity: 24)).to be_quantity_break
+      end
+    end
   end
 
   describe '#price_including_vat_for' do
