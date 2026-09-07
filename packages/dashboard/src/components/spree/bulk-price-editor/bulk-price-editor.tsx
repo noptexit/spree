@@ -300,7 +300,15 @@ export function BulkPriceEditor({
         })
       }
 
+      // A draft whose quantity the server already returns is the same rung
+      // twice: the stored row above renders it, so this one steps aside until
+      // the effect drops it. Skipping rather than removing is what keeps the
+      // handover from flickering (docs/plans/6.0-volume-pricing.md).
+      const storedQuantities = new Set(rungs.map((rung) => rung.min_quantity))
+
       for (const draft of draftRungs.filter((entry) => entry.variantId === row.variant_id)) {
+        if (storedQuantities.has(Number(draft.minQuantity))) continue
+
         out.push({
           id: draft.id,
           kind: 'tier',
@@ -330,6 +338,9 @@ export function BulkPriceEditor({
   }, [data, breaksByVariant, draftRungs])
 
   const [edits, setEdits] = useState<Map<string, CellEdit>>(() => new Map())
+  // Keys already written to the server, kept in `edits` until the refetch
+  // carries their values — see the release effect below.
+  const [savedPending, setSavedPending] = useState<Set<string>>(() => new Set())
 
   // Reset page + edits whenever the upstream filters change — a different
   // list, currency, or product scope is a different working set; carrying
@@ -339,8 +350,64 @@ export function BulkPriceEditor({
   useEffect(() => {
     setPage(1)
     setEdits(new Map())
+    setSavedPending(new Set())
     setDraftRungs([])
   }, [priceListId, currency, filterKey])
+
+  // Releases a saved edit once the refetched row agrees with it, so the cell
+  // hands over to server data without ever showing the value it replaced.
+  // Compared on the canonical decimal, since the edit holds the merchant's
+  // locale-formatted input.
+  useEffect(() => {
+    if (savedPending.size === 0) return
+
+    const settled: string[] = []
+    for (const key of savedPending) {
+      const edit = edits.get(key)
+      // Gone already (discarded, or the working set changed) — stop tracking.
+      if (!edit) {
+        settled.push(key)
+        continue
+      }
+
+      const baseline = baselineRows.find((row) => (row.priceId ?? row.id) === key)
+      if (!baseline) continue
+
+      const saved = normalizeMoneyInput(edit.amount ?? '', marketLocale || 'en')
+      if ((baseline.amount ?? '') === (saved === '' ? '' : saved)) settled.push(key)
+    }
+    if (settled.length === 0) return
+
+    setEdits((prev) => {
+      const out = new Map(prev)
+      for (const key of settled) out.delete(key)
+      return out
+    })
+    setSavedPending((prev) => {
+      const out = new Set(prev)
+      for (const key of settled) out.delete(key)
+      return out
+    })
+  }, [baselineRows, edits, savedPending, marketLocale])
+
+  // Hands a saved draft over to the row the server now returns, once that row
+  // has actually arrived. Doing this on save instead would blank the rung for
+  // the length of the refetch — the row someone just entered disappearing and
+  // coming back (docs/plans/6.0-volume-pricing.md).
+  useEffect(() => {
+    if (draftRungs.length === 0) return
+
+    const stored = new Set((breakRows ?? []).map((row) => `${row.variant_id}:${row.min_quantity}`))
+    const pending = draftRungs.filter(
+      (rung) => !stored.has(`${rung.variantId}:${Number(rung.minQuantity)}`),
+    )
+    if (pending.length === draftRungs.length) return
+
+    setDraftRungs(pending)
+    // The blank rows below them are re-keyed by the draft count, so the
+    // promotion bookkeeping for the old ids is spent.
+    promotedBlankRows.current = new Map()
+  }, [breakRows, draftRungs])
 
   const rows = useMemo<BulkPriceRow[]>(
     () =>
@@ -500,6 +567,9 @@ export function BulkPriceEditor({
     // A rung the merchant started and left empty is not a price — it carries
     // neither a quantity nor an amount, and the server would refuse it.
     const savedKeys = Array.from(edits.entries())
+      // Already written and waiting for their refetch — re-sending them would
+      // write the same values again on every subsequent save.
+      .filter(([id]) => !savedPending.has(id))
       .filter(([id, edit]) => !(id.startsWith('draft:') && !edit.minQuantity && !edit.amount))
       .map(([id]) => id)
     if (savedKeys.length === 0) return false
@@ -538,13 +608,13 @@ export function BulkPriceEditor({
           count: res.price_count,
         }),
       })
-      setEdits((prev) => {
-        const out = new Map(prev)
-        for (const key of savedKeys) out.delete(key)
-        return out
-      })
-      // The drafts now exist as stored rows, and the refetch renders them.
-      setDraftRungs((prev) => prev.filter((rung) => !savedKeys.includes(rung.id)))
+      // Neither the edits nor the drafts are cleared here. Both are released
+      // once the refetch actually carries the saved values (see the effects
+      // below). Clearing now would show every saved cell its stale baseline
+      // — and unmount a new rung entirely — for the length of the round
+      // trip, which reads as the sheet flashing back and forth
+      // (docs/plans/6.0-volume-pricing.md).
+      setSavedPending((prev) => new Set([...prev, ...savedKeys]))
       return true
     } catch (err) {
       const message =
@@ -554,17 +624,26 @@ export function BulkPriceEditor({
       toastManager.add({ type: 'error', title: message })
       return false
     }
-  }, [edits, currency, priceListId, bulkUpsertAsync, marketLocale, t])
+  }, [edits, savedPending, currency, priceListId, bulkUpsertAsync, marketLocale, t])
 
   const discard = useCallback(() => {
     setEdits(new Map())
+    setSavedPending(new Set())
+    setDraftRungs([])
   }, [])
+
+  // Held edits are already written, so they are not unsaved changes —
+  // counting them would leave the header claiming work that is done.
+  const dirtyCount = useMemo(
+    () => Array.from(edits.keys()).filter((key) => !savedPending.has(key)).length,
+    [edits, savedPending],
+  )
 
   // Surface dirty/save/discard to the parent route so it can render a
   // sticky footer and gate router navigation on unsaved edits.
   useEffect(() => {
-    onStateChange?.({ dirtyCount: edits.size, saving: isSaving, save, discard })
-  }, [edits.size, isSaving, save, discard, onStateChange])
+    onStateChange?.({ dirtyCount, saving: isSaving, save, discard })
+  }, [dirtyCount, isSaving, save, discard, onStateChange])
 
   const countSummary =
     totalCount > 0
