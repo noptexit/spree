@@ -3332,7 +3332,6 @@
               "price": "Preis",
               "product": "Produkt",
               "sku": "SKU",
-              "tiers": "Staffeln",
               "variant": "Variante"
             },
             "compare_at_aria": "Vergleichspreis für {{label}}",
@@ -3410,20 +3409,9 @@
           "subtitle": "Gezielte Preisgestaltung für Kundengruppen, Regionen oder Mengenstaffeln.",
           "tiers": {
             "add": "Mengenstaffel hinzufügen",
-            "add_short": "Hinzufügen",
-            "count_badge_one": "{{count}} Staffel",
-            "count_badge_other": "{{count}} Staffeln",
-            "duplicate_quantity": "Zwei Staffeln können nicht bei derselben Menge beginnen.",
-            "empty": "Keine Staffeln — diese Variante kostet unabhängig von der Bestellmenge dasselbe.",
-            "help": "Ab der jeweiligen Menge gilt dieser Stückpreis. Eine Variante mit Staffeln wird ausschließlich danach berechnet — der Prozentsatz der Liste gilt für sie nicht.",
-            "invalid_rung": "Jede Staffel braucht eine Menge über 1 und einen Stückpreis.",
+            "from": "Ab Menge",
             "quantity": "Ab Menge",
-            "remove": "Staffel ab {quantity} entfernen",
-            "save_failed": "Die Mengenstaffeln konnten nicht gespeichert werden.",
-            "save_success_one": "{{count}} Mengenstaffel gespeichert.",
-            "save_success_other": "{{count}} Mengenstaffeln gespeichert.",
-            "title": "Mengenstaffeln — {{variant}}",
-            "unit_price": "Stückpreis"
+            "remove_short": "Diese Mengenstaffel entfernen"
           },
           "title": "Preislisten",
           "unschedule": "Planung aufheben",

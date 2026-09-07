@@ -3332,7 +3332,6 @@
               "price": "Price",
               "product": "Product",
               "sku": "SKU",
-              "tiers": "Tiers",
               "variant": "Variant"
             },
             "compare_at_aria": "Compare-at price for {{label}}",
@@ -3410,20 +3409,9 @@
           "subtitle": "Targeted pricing for customer groups, regions, or volume tiers.",
           "tiers": {
             "add": "Add quantity break",
-            "add_short": "Add",
-            "count_badge_one": "{{count}} tier",
-            "count_badge_other": "{{count}} tiers",
-            "duplicate_quantity": "Two breaks cannot start at the same quantity.",
-            "empty": "No breaks — this variant is charged one price whatever the order size.",
-            "help": "From each quantity up, a line is charged this unit price. A variant with breaks is priced by them alone — the list’s percentage does not apply to it.",
-            "invalid_rung": "Each break needs a quantity above 1 and a unit price.",
+            "from": "From qty",
             "quantity": "From quantity",
-            "remove": "Remove the break from {quantity}",
-            "save_failed": "Could not save the quantity breaks.",
-            "save_success_one": "Saved {{count}} quantity break.",
-            "save_success_other": "Saved {{count}} quantity breaks.",
-            "title": "Quantity breaks — {{variant}}",
-            "unit_price": "Unit price"
+            "remove_short": "Remove this quantity break"
           },
           "title": "Price Lists",
           "unschedule": "Unschedule",

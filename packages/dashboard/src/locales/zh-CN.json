@@ -3324,7 +3324,6 @@
               "price": "价格",
               "product": "商品",
               "sku": "SKU",
-              "tiers": "阶梯",
               "variant": "变体"
             },
             "compare_at_aria": "{{label}} 的对比价",
@@ -3402,20 +3401,9 @@
           "subtitle": "针对客户群体、地区或批量层级的定向定价。",
           "tiers": {
             "add": "添加数量阶梯",
-            "add_short": "添加",
-            "count_badge_one": "{{count}} 档",
-            "count_badge_other": "{{count}} 档",
-            "duplicate_quantity": "两档不能从同一数量开始。",
-            "empty": "暂无阶梯——无论订购多少，此变体都按同一价格计费。",
-            "help": "达到各档数量后，该行按此单价计费。设有阶梯的变体只按阶梯定价，列表的百分比对它不适用。",
-            "invalid_rung": "每一档都需要大于 1 的数量和有效的单价。",
+            "from": "起订量",
             "quantity": "起订量",
-            "remove": "删除 {quantity} 起的阶梯",
-            "save_failed": "无法保存数量阶梯。",
-            "save_success_one": "已保存 {{count}} 个数量阶梯。",
-            "save_success_other": "已保存 {{count}} 个数量阶梯。",
-            "title": "数量阶梯 — {{variant}}",
-            "unit_price": "单价"
+            "remove_short": "删除此数量阶梯"
           },
           "title": "价格表",
           "unschedule": "取消安排",

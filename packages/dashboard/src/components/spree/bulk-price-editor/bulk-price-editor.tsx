@@ -7,12 +7,11 @@ import {
 } from '@spree/dashboard-core'
 import { type BulkPriceRow, BulkPriceTable, toastManager } from '@spree/dashboard-ui'
 import { useQuery } from '@tanstack/react-query'
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCurrencyLocale } from '../../../hooks/use-currency-locale'
 import { useBulkUpsertPrices } from '../../../hooks/use-prices'
 import { MAXIMUM_QUANTITY_TIERS } from '../../../schemas/price-list'
-import { VariantTierDialog } from './variant-tier-dialog'
 
 const PAGE_SIZE = 50
 // The API caps a page at 100 rows, so the break sweep asks for exactly that
@@ -41,17 +40,27 @@ interface CellEdit {
   // page 1: the save loop resolves variant_id via `baselineRows`, which
   // only holds the current page's server result.
   variantId: string
+  // Present on a quantity break, absent on the variant's own price — which
+  // is the ladder's bottom rung and needs no quantity on the wire.
+  minQuantity?: string
   amount: string | null
   compareAt: string | null
 }
 
-// BulkPriceRow extended with the server-side variantId so save can ship
-// the canonical (variant_id, currency, price_list_id) upsert triple.
+// BulkPriceRow extended with the server-side variantId so save can ship the
+// canonical (variant_id, currency, price_list_id, min_quantity) upsert key.
 interface BaselineRow extends BulkPriceRow {
   priceId?: string
   variantId?: string
-  /** Shown in the tier dialog's title, so the merchant knows which row. */
-  tierLabel?: string
+}
+
+// A break the merchant added that has no stored row yet. Carries its own
+// client id so the grid can key it before the server assigns one.
+interface DraftRung {
+  id: string
+  variantId: string
+  minQuantity: string
+  amount: string | null
 }
 
 type FilterShape = Record<string, string | number | boolean | string[] | null | undefined>
@@ -226,13 +235,24 @@ export function BulkPriceEditor({
     enabled: !!priceListId && pageVariantIds.length > 0,
   })
 
-  const breakCounts = useMemo(() => {
-    const counts = new Map<string, number>()
+  // Grouped by variant and ordered by quantity, so a ladder renders in the
+  // order it is read (docs/plans/6.0-volume-pricing.md).
+  const breaksByVariant = useMemo(() => {
+    const grouped = new Map<string, PriceListRowFromServer[]>()
     for (const row of breakRows ?? []) {
-      counts.set(row.variant_id, (counts.get(row.variant_id) ?? 0) + 1)
+      const rungs = grouped.get(row.variant_id) ?? []
+      rungs.push(row)
+      grouped.set(row.variant_id, rungs)
     }
-    return counts
+    for (const rungs of grouped.values()) rungs.sort((a, b) => a.min_quantity - b.min_quantity)
+    return grouped
   }, [breakRows])
+
+  // Rungs added in this session that have no stored row yet. They live beside
+  // the fetched ones until Save writes them.
+  const [draftRungs, setDraftRungs] = useState<DraftRung[]>([])
+  // Monotonic, so two rungs added in the same millisecond cannot collide.
+  const nextDraftId = useRef(0)
 
   const baselineRows = useMemo<BaselineRow[]>(() => {
     if (!data) return []
@@ -248,26 +268,59 @@ export function BulkPriceEditor({
         })
         lastProductId = variant.product_id
       }
+      const rungs = breaksByVariant.get(row.variant_id) ?? []
+
       out.push({
         id: row.id,
         kind: 'item',
         priceId: row.id,
         variantId: row.variant_id,
         variantLabel: variant.options_text ?? null,
-        tierLabel: [variant.product_name, variant.options_text].filter(Boolean).join(' — '),
         sku: variant.sku ?? null,
         amount: row.amount,
         compareAt: row.compare_at_amount,
-        breakCount: breakCounts.get(row.variant_id) ?? 0,
+      })
+
+      // The rungs are ordinary rows of this sheet. A variant's own price is
+      // the ladder's first rung — which is why quantity is a column and these
+      // are simply the rows below it (docs/plans/6.0-volume-pricing.md).
+      for (const rung of rungs) {
+        out.push({
+          id: rung.id,
+          kind: 'tier',
+          priceId: rung.id,
+          variantId: row.variant_id,
+          minQuantity: String(rung.min_quantity),
+          amount: rung.amount,
+        })
+      }
+
+      for (const draft of draftRungs.filter((entry) => entry.variantId === row.variant_id)) {
+        out.push({
+          id: draft.id,
+          kind: 'tier',
+          variantId: row.variant_id,
+          minQuantity: draft.minQuantity,
+          amount: draft.amount,
+        })
+      }
+
+      // Every variant ends with an empty rung waiting to be typed into, so
+      // growing a ladder is filling in the next line rather than asking for
+      // one first (docs/plans/6.0-volume-pricing.md).
+      out.push({
+        id: `blank:${row.variant_id}`,
+        kind: 'tier',
+        blank: true,
+        variantId: row.variant_id,
+        minQuantity: '',
+        amount: null,
       })
     }
     return out
-  }, [data, breakCounts])
+  }, [data, breaksByVariant, draftRungs])
 
   const [edits, setEdits] = useState<Map<string, CellEdit>>(() => new Map())
-  // Which row's ladder is open. Held by row id rather than variant id so the
-  // dialog can name the product the merchant clicked.
-  const [tierRowId, setTierRowId] = useState<string | null>(null)
 
   // Reset page + edits whenever the upstream filters change — a different
   // list, currency, or product scope is a different working set; carrying
@@ -277,25 +330,47 @@ export function BulkPriceEditor({
   useEffect(() => {
     setPage(1)
     setEdits(new Map())
+    setDraftRungs([])
   }, [priceListId, currency, filterKey])
 
   const rows = useMemo<BulkPriceRow[]>(
     () =>
       baselineRows.map((r) => {
-        if (r.kind !== 'item' || !r.priceId) return r
-        const edit = edits.get(r.priceId)
+        if (r.kind === 'header') return r
+        const edit = edits.get(r.priceId ?? r.id)
         if (!edit) return r
-        return { ...r, amount: edit.amount, compareAt: edit.compareAt }
+        // A tier row edits the same two things a variant row does, minus the
+        // compare-at it has no column for.
+        return r.kind === 'tier'
+          ? { ...r, amount: edit.amount }
+          : { ...r, amount: edit.amount, compareAt: edit.compareAt }
       }),
     [baselineRows, edits],
   )
 
+  // Typing in a variant's trailing blank row turns it into a real draft rung,
+  // and the row builder immediately puts a fresh blank one below it — so the
+  // ladder always has somewhere to grow (docs/plans/6.0-volume-pricing.md).
+  //
+  // @returns the draft's id, so the caller can record the edit against it
+  const promoteBlankRow = useCallback((rowId: string): string | null => {
+    if (!rowId.startsWith('blank:')) return null
+
+    const variantId = rowId.slice('blank:'.length)
+    const draftId = `draft:${variantId}:${nextDraftId.current++}`
+    setDraftRungs((prev) => [...prev, { id: draftId, variantId, minQuantity: '', amount: null }])
+    return draftId
+  }, [])
+
   const handleChange = useCallback(
     (rowId: string, field: 'amount' | 'compareAt', next: string | null) => {
+      // Typing a price into the trailing blank row is what creates the rung.
+      const promoted = promoteBlankRow(rowId)
+      const targetId = promoted ?? rowId
+
       setEdits((prev) => {
-        const baseline = baselineRows.find(
-          (r): r is BaselineRow & { kind: 'item' } => r.kind === 'item' && r.priceId === rowId,
-        )
+        // A draft rung has no stored row, so it is found by its own id.
+        const baseline = baselineRows.find((r) => (r.priceId ?? r.id) === rowId)
         if (!baseline?.variantId) return prev
         // Baseline is the API's canonical decimal (`12.50`); the cell
         // ships the user's raw locale-formatted input (`12,50`). Seed the
@@ -306,23 +381,96 @@ export function BulkPriceEditor({
         const displayBaseCompare = baseline.compareAt
           ? baseline.compareAt.replace('.', decimal)
           : null
-        const current = prev.get(rowId) ?? {
+        const current = prev.get(targetId) ?? {
           variantId: baseline.variantId,
+          minQuantity: baseline.minQuantity,
           amount: displayBaseAmount,
           compareAt: displayBaseCompare,
         }
-        const merged = { ...current, [field]: next }
+        // Re-read the quantity on every merge: a draft rung's quantity is
+        // typed after its price cell may already hold an edit, and the save
+        // payload needs whatever it says now.
+        const merged = { ...current, minQuantity: baseline.minQuantity, [field]: next }
         if (merged.amount === displayBaseAmount && merged.compareAt === displayBaseCompare) {
           const out = new Map(prev)
-          out.delete(rowId)
+          out.delete(targetId)
           return out
         }
         const out = new Map(prev)
-        out.set(rowId, merged)
+        out.set(targetId, merged)
         return out
       })
     },
-    [baselineRows, decimal],
+    [baselineRows, decimal, promoteBlankRow],
+  )
+
+  // The plus on the blank row does the same thing a keystroke does — it is
+  // there for discoverability, not because a row has to be asked for.
+  const addTier = useCallback(
+    (rowId: string) => {
+      promoteBlankRow(rowId)
+    },
+    [promoteBlankRow],
+  )
+
+  const changeTierQuantity = useCallback(
+    (rowId: string, value: string) => {
+      const promoted = promoteBlankRow(rowId)
+      const targetId = promoted ?? rowId
+
+      setDraftRungs((prev) =>
+        prev.map((rung) => (rung.id === targetId ? { ...rung, minQuantity: value } : rung)),
+      )
+      setEdits((prev) => {
+        const row = baselineRows.find((entry) => (entry.priceId ?? entry.id) === rowId)
+        if (!row?.variantId) return prev
+
+        const existing = prev.get(targetId)
+        const out = new Map(prev)
+        // Moving a stored rung's quantity is an edit in its own right, and a
+        // draft's quantity is what makes it addressable at all — so either
+        // way the row joins the sheet's unsaved changes.
+        out.set(targetId, {
+          variantId: row.variantId,
+          minQuantity: value,
+          amount: existing?.amount ?? row.amount ?? null,
+          compareAt: existing?.compareAt ?? null,
+        })
+        return out
+      })
+    },
+    [baselineRows, promoteBlankRow],
+  )
+
+  const removeTier = useCallback(
+    (rowId: string) => {
+      // A draft rung has nothing stored to remove; a saved one is cleared by
+      // sending a blank amount, which the bulk endpoint reads as "delete this".
+      if (rowId.startsWith('draft:')) {
+        setDraftRungs((prev) => prev.filter((rung) => rung.id !== rowId))
+        setEdits((prev) => {
+          const out = new Map(prev)
+          out.delete(rowId)
+          return out
+        })
+        return
+      }
+
+      setEdits((prev) => {
+        const row = baselineRows.find((entry) => entry.priceId === rowId)
+        if (!row?.variantId) return prev
+
+        const out = new Map(prev)
+        out.set(rowId, {
+          variantId: row.variantId,
+          minQuantity: row.minQuantity,
+          amount: null,
+          compareAt: null,
+        })
+        return out
+      })
+    },
+    [baselineRows],
   )
 
   const save = useCallback(async (): Promise<boolean> => {
@@ -331,7 +479,12 @@ export function BulkPriceEditor({
     // the mutation is in-flight, so concurrent edits the user makes
     // during the round-trip must survive the post-save clear. After a
     // successful upsert we drop only the keys that were in the snapshot.
-    const savedKeys = Array.from(edits.keys())
+    // A rung the merchant started and left empty is not a price — it carries
+    // neither a quantity nor an amount, and the server would refuse it.
+    const savedKeys = Array.from(edits.entries())
+      .filter(([id, edit]) => !(id.startsWith('draft:') && !edit.minQuantity && !edit.amount))
+      .map(([id]) => id)
+    if (savedKeys.length === 0) return false
     // Ship the unique-key triple `(variant_id, currency, price_list_id)`
     // — that's what the server upserts on. `id` is not used by the bulk
     // endpoint; we already have the lookup columns on screen so there's
@@ -351,8 +504,12 @@ export function BulkPriceEditor({
         variant_id: edit.variantId,
         currency,
         ...(priceListId ? { price_list_id: priceListId } : {}),
+        // Absent on a variant's own price, which is the ladder's bottom rung.
+        ...(edit.minQuantity ? { min_quantity: Number(edit.minQuantity) } : {}),
         amount: toCanonical(edit.amount),
-        compare_at_amount: toCanonical(edit.compareAt),
+        // A break carries no compare-at; sending one would claim a former
+        // price for a contracted figure.
+        ...(edit.minQuantity ? {} : { compare_at_amount: toCanonical(edit.compareAt) }),
       }
     })
     try {
@@ -368,6 +525,8 @@ export function BulkPriceEditor({
         for (const key of savedKeys) out.delete(key)
         return out
       })
+      // The drafts now exist as stored rows, and the refetch renders them.
+      setDraftRungs((prev) => prev.filter((rung) => !savedKeys.includes(rung.id)))
       return true
     } catch (err) {
       const message =
@@ -406,76 +565,52 @@ export function BulkPriceEditor({
     { search },
   )
 
-  const tierRow = tierRowId
-    ? baselineRows.find((row) => row.kind === 'item' && row.id === tierRowId)
-    : undefined
-
   return (
-    <>
-      <BulkPriceTable
-        rows={rows}
-        symbol={symbol}
-        decimal={decimal}
-        onChange={handleChange}
-        // Ladders live on a price list; base prices carry no breaks in v1, so
-        // the column simply does not appear there.
-        onOpenTiers={priceListId ? setTierRowId : undefined}
-        search={search}
-        onSearchChange={(next) => {
-          setSearch(next)
-          setPage(1)
-        }}
-        page={page}
-        totalPages={totalPages}
-        onPageChange={setPage}
-        isLoading={isLoading}
-        labels={{
-          variant: t('admin.pages.products.price_lists.edit_prices.columns.variant'),
-          sku: t('admin.pages.products.price_lists.edit_prices.columns.sku'),
-          price: t('admin.pages.products.price_lists.edit_prices.columns.price'),
-          compareAt: t('admin.pages.products.price_lists.edit_prices.columns.compare_at_price'),
-          variantDefault: t('admin.pages.products.price_lists.edit_prices.variant_default'),
-          searchPlaceholder: t('admin.pages.products.price_lists.edit_prices.search_placeholder'),
-          countSummary,
-          loading: t('admin.common.loading'),
-          pageOf: t('admin.common.page_of', { page: '{page}', total: '{total}' }),
-          prev: t('admin.common.prev'),
-          next: t('admin.common.next'),
-          emptyMessage,
-          emptySearchMessage,
-          gridAriaLabel: t('admin.pages.products.price_lists.edit_prices.grid_aria'),
-          priceAriaTemplate: t('admin.pages.products.price_lists.edit_prices.price_aria', {
-            label: '{label}',
-          }),
-          compareAtAriaTemplate: t('admin.pages.products.price_lists.edit_prices.compare_at_aria', {
-            label: '{label}',
-          }),
-          tiers: priceListId
-            ? t('admin.pages.products.price_lists.edit_prices.columns.tiers')
-            : undefined,
-          tiersWithCount: (count: number) =>
-            t('admin.pages.products.price_lists.tiers.count_badge', { count }),
-          tiersEmpty: t('admin.pages.products.price_lists.tiers.add_short'),
-        }}
-      />
-
-      {priceListId && tierRow?.variantId && (
-        <VariantTierDialog
-          open
-          onOpenChange={(next) => {
-            if (!next) setTierRowId(null)
-          }}
-          variantId={tierRow.variantId}
-          variantLabel={
-            tierRow.tierLabel || t('admin.pages.products.price_lists.edit_prices.variant_default')
-          }
-          priceListId={priceListId}
-          currency={currency}
-          decimal={decimal}
-          marketLocale={marketLocale}
-          symbol={symbol}
-        />
-      )}
-    </>
+    <BulkPriceTable
+      rows={rows}
+      symbol={symbol}
+      decimal={decimal}
+      onChange={handleChange}
+      // Ladders live on a price list; base prices carry no breaks in v1, so
+      // neither the quantity column nor the rung rows appear there.
+      onTierQuantityChange={priceListId ? changeTierQuantity : undefined}
+      onTierAdd={priceListId ? addTier : undefined}
+      onTierRemove={priceListId ? removeTier : undefined}
+      search={search}
+      onSearchChange={(next) => {
+        setSearch(next)
+        setPage(1)
+      }}
+      page={page}
+      totalPages={totalPages}
+      onPageChange={setPage}
+      isLoading={isLoading}
+      labels={{
+        variant: t('admin.pages.products.price_lists.edit_prices.columns.variant'),
+        sku: t('admin.pages.products.price_lists.edit_prices.columns.sku'),
+        price: t('admin.pages.products.price_lists.edit_prices.columns.price'),
+        compareAt: t('admin.pages.products.price_lists.edit_prices.columns.compare_at_price'),
+        variantDefault: t('admin.pages.products.price_lists.edit_prices.variant_default'),
+        searchPlaceholder: t('admin.pages.products.price_lists.edit_prices.search_placeholder'),
+        countSummary,
+        loading: t('admin.common.loading'),
+        pageOf: t('admin.common.page_of', { page: '{page}', total: '{total}' }),
+        prev: t('admin.common.prev'),
+        next: t('admin.common.next'),
+        emptyMessage,
+        emptySearchMessage,
+        gridAriaLabel: t('admin.pages.products.price_lists.edit_prices.grid_aria'),
+        priceAriaTemplate: t('admin.pages.products.price_lists.edit_prices.price_aria', {
+          label: '{label}',
+        }),
+        compareAtAriaTemplate: t('admin.pages.products.price_lists.edit_prices.compare_at_aria', {
+          label: '{label}',
+        }),
+        tierFrom: priceListId ? t('admin.pages.products.price_lists.tiers.from') : undefined,
+        tierAdd: t('admin.pages.products.price_lists.tiers.add'),
+        tierRemove: t('admin.pages.products.price_lists.tiers.remove_short'),
+        tierQuantity: t('admin.pages.products.price_lists.tiers.quantity'),
+      }}
+    />
   )
 }
