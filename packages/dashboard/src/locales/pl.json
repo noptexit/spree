@@ -3402,6 +3402,7 @@
             "save_success_one": "Zapisano {{count}} cenę",
             "save_success_other": "Zapisano {{count}} cen",
             "search_placeholder": "Szukaj po produkcie, SKU lub opcji…",
+            "tier_needs_price": "Podaj cenę dla progu ilościowego od {{quantity}} lub wyczyść ilość, aby go usunąć.",
             "title": "Edytuj ceny — {{name}}",
             "variant_default": "Domyślny"
           },

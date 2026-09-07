@@ -68,6 +68,10 @@ function DataGridShell<T>({
   const cellsRef = useRef<Map<CellKey, CellRegistration>>(new Map())
   const [bounds, setBounds] = useState<{ maxRow: number; maxCol: number }>({ maxRow: 0, maxCol: 0 })
   const [anchor, setAnchor] = useState<CellCoords | null>(null)
+  // Read by the blur handler, which fires from a DOM event and would
+  // otherwise close over a stale anchor.
+  const anchorRef = useRef<CellCoords | null>(null)
+  anchorRef.current = anchor
   const [extent, setExtent] = useState<CellCoords | null>(null)
   const [editing, setEditing] = useState<CellCoords | null>(null)
 
@@ -93,11 +97,27 @@ function DataGridShell<T>({
 
   const focusCell = useCallback((coords: CellCoords) => {
     const target = cellsRef.current.get(cellKey(coords))
-    if (target) {
-      target.focus()
-      return
-    }
+    // Focus now if the cell is already there, but ask again once the render
+    // this commit triggers has settled. Committing an edit re-renders the
+    // row, and React replaces the input we just focused — inside a dialog
+    // the browser then falls back to the dialog itself, which leaves nothing
+    // holding the selection and the arrow keys dead until the merchant
+    // clicks a cell (docs/plans/6.0-volume-pricing.md).
+    target?.focus()
     pendingFocusRef.current = coords
+    requestAnimationFrame(() => {
+      const pending = pendingFocusRef.current
+      if (!pending || cellKey(pending) !== cellKey(coords)) return
+      pendingFocusRef.current = null
+      const cell = cellsRef.current.get(cellKey(coords))
+      if (cell) {
+        cell.focus()
+        return
+      }
+      // No cell to focus — keep the keyboard in the grid rather than letting
+      // it fall back to whatever contains it.
+      gridRef.current?.focus()
+    })
   }, [])
 
   const registerCell = useCallback(
@@ -160,16 +180,44 @@ function DataGridShell<T>({
       <div className="relative overflow-hidden rounded-md">
         <table
           ref={gridRef}
+          // Focusable so the grid itself can hold the keyboard when a cell's
+          // input goes away. Committing an edit re-renders the row and React
+          // replaces that input; inside a dialog the focus trap then pulls
+          // focus to the dialog, which is outside the grid, and every arrow
+          // key after it lands on nothing (docs/plans/6.0-volume-pricing.md).
+          tabIndex={-1}
           className={cn(
-            'w-full border-collapse text-sm [&_td]:border [&_th]:border [&_td]:border-border [&_th]:border-border',
+            'w-full border-collapse text-sm outline-none [&_td]:border [&_th]:border [&_td]:border-border [&_th]:border-border',
             className,
           )}
           aria-label={ariaLabel}
           onBlurCapture={(e) => {
-            // If focus leaves the grid entirely, drop the selection so a
-            // fresh focus-in starts clean.
+            // A cell unmounting mid-commit is not the merchant leaving the
+            // grid: `relatedTarget` is null there, and the dialog's focus
+            // trap then claims the focus a frame later. Take it back on the
+            // spot and keep the selection, rather than racing that trap on a
+            // timer (docs/plans/6.0-volume-pricing.md).
             const next = e.relatedTarget as Node | null
             if (next && gridRef.current?.contains(next)) return
+            // Two hops the merchant did not ask for, both caused by a cell
+            // being replaced mid-commit: the browser dropping focus
+            // (`relatedTarget` null), and the surrounding dialog's focus trap
+            // then claiming it. Neither means the grid was left, so keep the
+            // selection and take the keyboard back.
+            const trapped =
+              next === null ||
+              (next instanceof Element &&
+                next.closest('[role="dialog"]')?.contains(gridRef.current ?? null) === true)
+            if (trapped) {
+              // After this event resolves, or the trap that prompted it wins.
+              if (anchorRef.current) {
+                queueMicrotask(() => gridRef.current?.focus({ preventScroll: true }))
+              }
+              return
+            }
+            // Focus moved somewhere real outside the grid — the merchant is
+            // done here, so drop the selection and let a fresh focus-in start
+            // clean.
             setAnchor(null)
             setExtent(null)
             setEditing(null)

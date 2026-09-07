@@ -3362,6 +3362,7 @@
             "save_success_one": "{{count}} prix enregistré",
             "save_success_other": "{{count}} prix enregistrés",
             "search_placeholder": "Rechercher par produit, SKU ou option…",
+            "tier_needs_price": "Saisissez un prix pour le palier de quantité à partir de {{quantity}}, ou effacez la quantité pour le supprimer.",
             "title": "Modifier les prix — {{name}}",
             "variant_default": "Par défaut"
           },

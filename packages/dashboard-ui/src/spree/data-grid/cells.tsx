@@ -89,6 +89,11 @@ export function NumberCell({
       ctx.focusCell(next)
     } else if (event.key === 'Escape') {
       event.preventDefault()
+      // Base UI's dialog listens for Escape on the document, so preventing
+      // the default is not enough to keep it from closing the sheet behind
+      // this cell: the key has to stop here (docs/plans/6.0-volume-pricing.md).
+      event.stopPropagation()
+      event.nativeEvent.stopImmediatePropagation()
       setDraft(value.toString())
       ctx.setEditing(null)
     } else if (event.key === 'Tab') {
@@ -235,6 +240,11 @@ export function MoneyCell({
       ctx.focusCell(next)
     } else if (event.key === 'Escape') {
       event.preventDefault()
+      // Base UI's dialog listens for Escape on the document, so preventing
+      // the default is not enough to keep it from closing the sheet behind
+      // this cell: the key has to stop here (docs/plans/6.0-volume-pricing.md).
+      event.stopPropagation()
+      event.nativeEvent.stopImmediatePropagation()
       setDraft(formatDisplay(value))
       ctx.setEditing(null)
     } else if (event.key === 'Tab') {
@@ -365,6 +375,11 @@ export function TextCell({ coords, value, onChange, ariaLabel }: TextCellProps) 
       ctx.focusCell(next)
     } else if (event.key === 'Escape') {
       event.preventDefault()
+      // Base UI's dialog listens for Escape on the document, so preventing
+      // the default is not enough to keep it from closing the sheet behind
+      // this cell: the key has to stop here (docs/plans/6.0-volume-pricing.md).
+      event.stopPropagation()
+      event.nativeEvent.stopImmediatePropagation()
       setDraft(value ?? '')
       ctx.setEditing(null)
     } else if (event.key === 'Tab') {

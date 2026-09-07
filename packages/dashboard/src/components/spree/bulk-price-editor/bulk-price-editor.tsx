@@ -45,6 +45,15 @@ interface CellEdit {
   minQuantity?: string
   amount: string | null
   compareAt: string | null
+  // Set only by the row's remove control. A blank amount is how the bulk
+  // endpoint is told to drop a rung, so it is also what a half-typed row
+  // looks like — this is what tells the two apart.
+  removing?: true
+  // The quantity this rung is stored under, when the merchant has since
+  // changed it. The bulk endpoint keys on the quantity, so a moved rung is an
+  // insert at the new one — the row at the old quantity has to be cleared by
+  // name or the ladder keeps both (docs/plans/6.0-volume-pricing.md).
+  storedMinQuantity?: string
 }
 
 // BulkPriceRow extended with the server-side variantId so save can ship the
@@ -416,9 +425,12 @@ export function BulkPriceEditor({
         const edit = edits.get(r.priceId ?? r.id)
         if (!edit) return r
         // A tier row edits the same two things a variant row does, minus the
-        // compare-at it has no column for.
+        // compare-at it has no column for. Its quantity comes from the edit
+        // too: a stored rung renders the server's number, so leaving it out
+        // meant a retyped quantity was overwritten by the old one the moment
+        // the cell left edit mode.
         return r.kind === 'tier'
-          ? { ...r, amount: edit.amount }
+          ? { ...r, minQuantity: edit.minQuantity, amount: edit.amount }
           : { ...r, amount: edit.amount, compareAt: edit.compareAt }
       }),
     [baselineRows, edits],
@@ -472,10 +484,22 @@ export function BulkPriceEditor({
           amount: displayBaseAmount,
           compareAt: displayBaseCompare,
         }
-        // Re-read the quantity on every merge: a draft rung's quantity is
-        // typed after its price cell may already hold an edit, and the save
-        // payload needs whatever it says now.
-        const merged = { ...current, minQuantity: baseline.minQuantity, [field]: next }
+        // An edit already holding a quantity keeps it: the merchant may have
+        // typed the quantity first, and the baseline still says what the
+        // server last stored. Only a rung with no edit yet takes its quantity
+        // from the row.
+        const merged = {
+          ...current,
+          minQuantity: prev.get(targetId)?.minQuantity ?? baseline.minQuantity,
+          [field]: next,
+          // Blanking the price of a rung the server already has is how it is
+          // deleted, the same as the row's remove control. On a rung that was
+          // never stored there is nothing to delete — it is simply unfinished,
+          // and the save refuses it rather than reporting a removal.
+          ...(field === 'amount'
+            ? { removing: !next && baseline.priceId ? (true as const) : undefined }
+            : {}),
+        }
         if (merged.amount === displayBaseAmount && merged.compareAt === displayBaseCompare) {
           const out = new Map(prev)
           out.delete(targetId)
@@ -512,6 +536,10 @@ export function BulkPriceEditor({
 
         const existing = prev.get(targetId)
         const out = new Map(prev)
+        // The quantity the server has for this rung, remembered from the
+        // first edit so retyping the cell repeatedly still clears the one
+        // original row rather than the previous keystroke's value.
+        const stored = existing?.storedMinQuantity ?? (row.priceId ? row.minQuantity : undefined)
         // Moving a stored rung's quantity is an edit in its own right, and a
         // draft's quantity is what makes it addressable at all — so either
         // way the row joins the sheet's unsaved changes.
@@ -520,6 +548,8 @@ export function BulkPriceEditor({
           minQuantity: value,
           amount: existing?.amount ?? row.amount ?? null,
           compareAt: existing?.compareAt ?? null,
+          // Back at its original quantity there is nothing to clear.
+          ...(stored && stored !== value ? { storedMinQuantity: stored } : {}),
         })
         return out
       })
@@ -551,6 +581,7 @@ export function BulkPriceEditor({
           minQuantity: row.minQuantity,
           amount: null,
           compareAt: null,
+          removing: true,
         })
         return out
       })
@@ -573,6 +604,24 @@ export function BulkPriceEditor({
       .filter(([id, edit]) => !(id.startsWith('draft:') && !edit.minQuantity && !edit.amount))
       .map(([id]) => id)
     if (savedKeys.length === 0) return false
+
+    // A rung with a quantity but no price is unfinished, not a deletion. The
+    // bulk endpoint reads a blank amount as "remove this rung", so sending it
+    // would answer a half-typed row by quietly discarding it — with a success
+    // toast (docs/plans/6.0-volume-pricing.md). Say what is missing instead.
+    const incomplete = savedKeys.find((key) => {
+      const edit = edits.get(key)
+      return edit != null && !edit.removing && Boolean(edit.minQuantity) && !edit.amount
+    })
+    if (incomplete) {
+      toastManager.add({
+        type: 'error',
+        title: t('admin.pages.products.price_lists.edit_prices.tier_needs_price', {
+          quantity: edits.get(incomplete)?.minQuantity ?? '',
+        }),
+      })
+      return false
+    }
     // Ship the unique-key triple `(variant_id, currency, price_list_id)`
     // — that's what the server upserts on. `id` is not used by the bulk
     // endpoint; we already have the lookup columns on screen so there's
@@ -586,9 +635,9 @@ export function BulkPriceEditor({
       const normalized = normalizeMoneyInput(v, marketLocale || 'en')
       return normalized === '' ? null : normalized
     }
-    const payload: PriceBulkUpsertRow[] = savedKeys.map((priceId) => {
+    const payload: PriceBulkUpsertRow[] = savedKeys.flatMap((priceId) => {
       const edit = edits.get(priceId) as CellEdit
-      return {
+      const row: PriceBulkUpsertRow = {
         variant_id: edit.variantId,
         currency,
         ...(priceListId ? { price_list_id: priceListId } : {}),
@@ -599,6 +648,20 @@ export function BulkPriceEditor({
         // price for a contracted figure.
         ...(edit.minQuantity ? {} : { compare_at_amount: toCanonical(edit.compareAt) }),
       }
+      // A rung whose quantity moved is an insert at the new one, since that
+      // is what the endpoint keys on — so the row it left behind is cleared
+      // in the same batch, or the merchant ends up with the rung twice.
+      if (!edit.storedMinQuantity) return [row]
+      return [
+        row,
+        {
+          variant_id: edit.variantId,
+          currency,
+          ...(priceListId ? { price_list_id: priceListId } : {}),
+          min_quantity: Number(edit.storedMinQuantity),
+          amount: null,
+        },
+      ]
     })
     try {
       const res = await bulkUpsertAsync({ prices: payload })

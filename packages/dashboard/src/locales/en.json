@@ -3362,6 +3362,7 @@
             "save_success_one": "Saved {{count}} price",
             "save_success_other": "Saved {{count}} prices",
             "search_placeholder": "Search by product, SKU, or option…",
+            "tier_needs_price": "Enter a price for the quantity break starting at {{quantity}}, or clear the quantity to remove it.",
             "title": "Edit prices — {{name}}",
             "variant_default": "Default"
           },

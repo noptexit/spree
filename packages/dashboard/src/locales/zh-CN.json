@@ -3354,6 +3354,7 @@
             "save_success_one": "已保存 {{count}} 个价格",
             "save_success_other": "已保存 {{count}} 个价格",
             "search_placeholder": "按商品、SKU 或选项搜索…",
+            "tier_needs_price": "请为从 {{quantity}} 起的数量阶梯输入价格，或清除数量以将其移除。",
             "title": "编辑价格 — {{name}}",
             "variant_default": "默认"
           },

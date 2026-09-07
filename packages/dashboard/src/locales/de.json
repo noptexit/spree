@@ -3362,6 +3362,7 @@
             "save_success_one": "{{count}} Preis gespeichert",
             "save_success_other": "{{count}} Preise gespeichert",
             "search_placeholder": "Nach Produkt, SKU oder Option suchen…",
+            "tier_needs_price": "Geben Sie einen Preis für die Mengenstaffel ab {{quantity}} ein, oder löschen Sie die Menge, um sie zu entfernen.",
             "title": "Preise bearbeiten — {{name}}",
             "variant_default": "Standard"
           },

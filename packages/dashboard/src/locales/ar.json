@@ -3379,6 +3379,7 @@
             "save_success_one": "تم الحفظ {{count}} السعر",
             "save_success_other": "تم الحفظ {{count}} الأسعار",
             "search_placeholder": "البحث حسب المنتج، SKU، أو الخيار…",
+            "tier_needs_price": "أدخل سعرًا لشريحة الكمية التي تبدأ من {{quantity}}، أو امسح الكمية لإزالتها.",
             "title": "تعديل الأسعار — {{name}}",
             "variant_default": "تقصير"
           },
