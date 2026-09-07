@@ -147,6 +147,16 @@ describe Spree::PriceList, type: :model do
         expect(price_list.reload.price_adjustment_tiers).to be_empty
       end
 
+      # Coercing with `to_i` would turn a typo into 0 and read it as a band to
+      # drop, so one bad row would silently delete the whole ladder.
+      it 'refuses a malformed quantity rather than clearing the ladder' do
+        expect(price_list.reload.price_adjustment_tiers.map(&:min_quantity)).to eq([10, 50])
+
+        expect(price_list.update(price_adjustment_tiers: [{ min_quantity: 'invalid', percentage: '-10' }])).to be(false)
+        expect(price_list.errors.full_messages.join).to match(/quantity/i)
+        expect(price_list.reload.price_adjustment_tiers.map(&:min_quantity)).to eq([10, 50])
+      end
+
       # Rails assigns model instances on an association swap; the writer has to
       # fall through to the ordinary setter rather than treat them as rows.
       it 'falls through to the standard writer for model instances' do

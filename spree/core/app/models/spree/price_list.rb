@@ -56,13 +56,17 @@ module Spree
       return super if rows.first.is_a?(Spree.base_class)
 
       wanted = rows.map { |row| row.respond_to?(:to_h) ? row.to_h.with_indifferent_access : row }
-      by_quantity = price_adjustment_tiers.index_by { |tier| tier.min_quantity.to_i }
+      by_quantity = price_adjustment_tiers.index_by(&:min_quantity)
 
-      kept = wanted.filter_map do |row|
-        quantity = row[:min_quantity].to_i
-        next if quantity.zero?
+      kept = wanted.map do |row|
+        # Assigned raw rather than coerced with `to_i`: a value that is not a
+        # number would become 0 and read as a band to drop, so a single typo
+        # would silently delete the whole ladder and report success. Left as
+        # it arrived, the tier's own numericality validation refuses the save
+        # and names the row (docs/plans/6.0-volume-pricing.md).
+        quantity = Spree::PriceAdjustmentTier.type_for_attribute(:min_quantity).cast(row[:min_quantity])
 
-        tier = by_quantity[quantity] || price_adjustment_tiers.build(min_quantity: quantity)
+        tier = by_quantity[quantity] || price_adjustment_tiers.build(min_quantity: row[:min_quantity])
         tier.percentage = row[:percentage]
         tier
       end

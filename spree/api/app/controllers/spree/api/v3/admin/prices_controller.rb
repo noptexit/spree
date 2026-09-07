@@ -53,11 +53,20 @@ module Spree
             end
 
             result = Spree::Prices::BulkUpsert.call(rows: rows)
-            # The cap lives in the service, since every write path reaches it
-            # and none of them run model validations
-            # (docs/plans/6.0-volume-pricing.md). Guarded on the failure
-            # actually carrying `over_cap`, so a failure mode the service grows
-            # later is not reported under this one's name.
+            # The quantity check and the cap both live in the service, since
+            # every write path reaches it and none of them run model
+            # validations (docs/plans/6.0-volume-pricing.md). Each branch is
+            # guarded on the key its own failure carries, so a failure mode the
+            # service grows later is not reported under one of these names.
+            if (invalid = result.error&.value.try(:[], :invalid_quantities))
+              return render_error(
+                code: 'invalid_min_quantity',
+                message: 'Each quantity break must start at a whole number of units.',
+                status: :unprocessable_content,
+                details: { rows: invalid }
+              )
+            end
+
             if (over_cap = result.error&.value.try(:[], :over_cap))
               return render_error(
                 code: 'too_many_breaks',

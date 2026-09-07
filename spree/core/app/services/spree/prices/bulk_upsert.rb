@@ -34,18 +34,24 @@ module Spree
       #   `min_quantity` means the ladder's bottom rung.
       # @return [Spree::ServiceModule::Result] success carries
       #   `{ price_count: N }` — the number of rows passed to `upsert_all`.
-      #   Fails with the offending rows when a batch would take a variant
-      #   past {Spree::Price::MAXIMUM_BREAKS_PER_VARIANT} breaks on one list:
-      #   this path writes in SQL and runs no model validations, so the cap
-      #   is enforced here rather than in each of the three controllers that
-      #   reach it (docs/plans/6.0-volume-pricing.md).
+      #   Fails with the offending rows when a batch carries an unusable
+      #   `min_quantity`, or would take a variant past
+      #   {Spree::Price::MAXIMUM_BREAKS_PER_VARIANT} breaks on one list. This
+      #   path writes in SQL and runs no model validations, so both checks
+      #   live here rather than in each of the three controllers that reach
+      #   it (docs/plans/6.0-volume-pricing.md).
       def call(rows:)
         rows = Array(rows).map { |r| r.with_indifferent_access }
         keyed = rows.select { |r| r[:variant_id].present? && r[:currency].present? }
-        # PG rejects an upsert with two rows hitting the same unique-key
-        # triple in one statement ("ON CONFLICT DO UPDATE command cannot
-        # affect row a second time"). Last-write-wins: keep the last
-        # occurrence of each triple.
+        # Checked before anything is deduped: `row_key` coerces the quantity,
+        # so two malformed rows would collapse into one and the batch would be
+        # judged on a shape the caller never sent.
+        malformed = rows_with_unusable_quantity(keyed)
+        return failure(nil, invalid_quantities: malformed) if malformed.any?
+
+        # PG rejects an upsert with two rows hitting the same unique key in one
+        # statement ("ON CONFLICT DO UPDATE command cannot affect row a second
+        # time"). Last-write-wins: keep the last occurrence of each key.
         deduped = keyed.reverse.uniq { |r| row_key(r) }.reverse
         upsert_rows, clear_rows = deduped.partition { |r| r[:amount].present? }
 
@@ -121,9 +127,33 @@ module Spree
         [row[:variant_id], row[:currency], row[:price_list_id], quantity_of(row)]
       end
 
+      # Absent means the ladder's bottom rung. Anything present must be a
+      # positive whole number — see #rows_with_unusable_quantity, which
+      # refuses the batch before this coerces anything.
       def quantity_of(row)
-        quantity = row[:min_quantity].to_i
-        quantity.positive? ? quantity : 1
+        return 1 if row[:min_quantity].blank?
+
+        row[:min_quantity].to_i
+      end
+
+      # Rows whose `min_quantity` is present but not a positive whole number.
+      #
+      # Coercing these with `to_i` would turn a typo into quantity 1 and
+      # overwrite the contracted price the variant is actually sold at — the
+      # row a customer is charged (docs/plans/6.0-volume-pricing.md). This
+      # path writes in SQL and runs no model validations, so the check has to
+      # happen here.
+      #
+      # @param rows [Array<Hash>]
+      # @return [Array<Hash>] `[{ index: }, ...]` for the offending rows
+      def rows_with_unusable_quantity(rows)
+        rows.each_with_index.filter_map do |row, index|
+          raw = row[:min_quantity]
+          next if raw.blank?
+
+          quantity = Integer(raw, exception: false)
+          { index: index } if quantity.nil? || quantity < 1
+        end
       end
 
       # Which ladders this batch would take past the cap, counted the way the

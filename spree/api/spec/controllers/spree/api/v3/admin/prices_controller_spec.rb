@@ -373,6 +373,22 @@ RSpec.describe Spree::Api::V3::Admin::PricesController, type: :controller do
       expect(Spree::Price.where(variant: variant, currency: 'USD', price_list: price_list).breaks).to be_empty
     end
 
+    # Coercing a typo with `to_i` would make it quantity 1 and overwrite the
+    # contracted price the variant is actually sold at.
+    it 'refuses a quantity that is not a whole number' do
+      upsert([{ variant_id: variant.prefixed_id, currency: 'USD',
+                price_list_id: price_list.prefixed_id, amount: '10.00' }])
+
+      upsert([{ variant_id: variant.prefixed_id, currency: 'USD',
+                price_list_id: price_list.prefixed_id, min_quantity: 'not-a-number', amount: '1.11' }])
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(json_response['error']['code']).to eq('invalid_min_quantity')
+      expect(json_response['error']['details']['rows']).to eq([{ 'index' => 0 }])
+      expect(Spree::Price.find_by(variant: variant, currency: 'USD', price_list: price_list, min_quantity: 1).amount).
+        to eq(10)
+    end
+
     # Re-sending a full ladder must not be refused for being the size it
     # already is.
     it 'accepts a batch that rewrites a full ladder in place' do

@@ -217,6 +217,39 @@ RSpec.describe Spree::Prices::BulkUpsert do
       expect(described_class.call(rows: [rung(500)])).to be_success
     end
 
+    # Coercing a typo with `to_i` would make it quantity 1 and overwrite the
+    # contracted price the variant is actually sold at.
+    it 'refuses a batch whose quantity is not a whole number' do
+      described_class.call(rows: [rung(1, '10.00')])
+
+      result = described_class.call(rows: [rung('not-a-number', '1.11')])
+
+      expect(result).to be_failure
+      expect(result.error.value[:invalid_quantities]).to eq([{ index: 0 }])
+      expect(Spree::Price.find_by(variant: variant, currency: 'USD', price_list: price_list, min_quantity: 1).amount).
+        to eq(10)
+    end
+
+    it 'refuses a quantity below one' do
+      expect(described_class.call(rows: [rung(0)])).to be_failure
+      expect(described_class.call(rows: [rung(-5)])).to be_failure
+    end
+
+    # Two malformed rows must both be reported, not collapsed into one by the
+    # dedup that keys on the coerced quantity.
+    it 'names every offending row' do
+      result = described_class.call(rows: [rung('x'), rung('y')])
+
+      expect(result.error.value[:invalid_quantities]).to eq([{ index: 0 }, { index: 1 }])
+    end
+
+    # An absent quantity is the ladder's bottom rung, which is every row
+    # written before breaks existed.
+    it 'still accepts a row that names no quantity' do
+      expect(described_class.call(rows: [{ variant_id: variant.id, currency: 'USD',
+                                           price_list_id: price_list.id, amount: '10.00' }])).to be_success
+    end
+
     # An ordinary spreadsheet save carries no breaks at all, and must not pay
     # for the check.
     it 'runs no cap query for a batch of bottom rungs' do
