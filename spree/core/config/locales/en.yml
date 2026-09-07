@@ -363,6 +363,15 @@ en:
           attributes:
             amount:
               greater_than_max_amount: is greater than the allowed maximum amount of %{max_amount}
+        spree/price:
+          attributes:
+            min_quantity:
+              requires_price_list: quantity breaks can only be set on a price list
+              too_many_breaks: a variant can carry at most %{count} quantity breaks on one price list
+        spree/price_adjustment_tier:
+          attributes:
+            base:
+              too_many_tiers: a price list can carry at most %{count} quantity tiers
         spree/price_list:
           attributes:
             base:
@@ -370,6 +379,8 @@ en:
             ends_at:
               must_be_after_starts_at: must be after starts at
             price_adjustment_percentage:
+              requires_catalog: can only be set on a price list a catalog owns
+            price_adjustment_tiers:
               requires_catalog: can only be set on a price list a catalog owns
         spree/product:
           attributes:

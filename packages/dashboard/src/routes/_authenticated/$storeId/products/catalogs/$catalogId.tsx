@@ -32,7 +32,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { type UseFormReturn, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { CatalogAudienceCard } from '../../../../../components/spree/catalog-audience'
-import { catalogPriceColumns } from '../../../../../components/spree/catalog-price-columns'
+import {
+  catalogPriceColumns,
+  catalogVariantRows,
+} from '../../../../../components/spree/catalog-price-columns'
 import { CatalogPricingFields } from '../../../../../components/spree/catalog-pricing-fields'
 import {
   CatalogTermsCard,
@@ -315,10 +318,13 @@ function CatalogBody({ catalog }: { catalog: Catalog }) {
                     </Button>
                   ) : undefined
                 }
-                extraColumns={(products) =>
+                // Each variant priced on its own row: a product's variants can
+                // be priced differently and carry different ladders
+                // (docs/plans/6.0-volume-pricing.md).
+                renderSubRows={(products) => catalogVariantRows({ products })}
+                extraColumns={() =>
                   mergeExtraColumns(
                     catalogPriceColumns({
-                      products,
                       headers: {
                         price: t('admin.catalogs.prices.column_price'),
                         source: t('admin.catalogs.prices.column_source'),

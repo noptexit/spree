@@ -147,10 +147,9 @@
         "updated": "Catalog updated"
       },
       "prices": {
+        "after_save": "After save",
         "column_price": "Price",
         "column_source": "From",
-        "unpriced": "No price",
-        "after_save": "After save",
         "source": {
           "explicit": "Entered",
           "automatic": "Adjusted",
@@ -160,7 +159,14 @@
           "explicit": "An amount entered on this catalog’s own price list.",
           "automatic": "The shop price with this catalog’s percentage applied.",
           "base": "The normal shop price — this catalog does not price this product."
-        }
+        },
+        "tier_count_one": "+{{count}} tier",
+        "tier_count_other": "+{{count}} tiers",
+        "tier_from_one": "From {{count}}",
+        "tier_from_other": "From {{count}}",
+        "tier_preview": "What this agreement charges",
+        "unpriced": "No price",
+        "variant_default": "Default"
       },
       "products": {
         "add_cta": "Add products",
@@ -1568,6 +1574,15 @@
         },
         "adjustment_magnitude": {
           "label": "Percentage"
+        },
+        "adjustment_tiers": {
+          "add": "Add quantity tier",
+          "empty": "No tiers — the percentage above applies at every quantity.",
+          "help": "From each quantity up, the agreement gives this percentage instead. Each tier is taken off the base price, never off the tier below it.",
+          "label": "Quantity tiers",
+          "percentage": "Percentage",
+          "quantity": "From quantity",
+          "remove": "Remove the tier from {quantity}"
         },
         "description": {
           "label": "Description",
@@ -3347,6 +3362,7 @@
             "save_success_one": "Saved {{count}} price",
             "save_success_other": "Saved {{count}} prices",
             "search_placeholder": "Search by product, SKU, or option…",
+            "tier_needs_price": "Enter a price for the quantity break starting at {{quantity}}, or clear the quantity to remove it.",
             "title": "Edit prices — {{name}}",
             "variant_default": "Default"
           },
@@ -3396,6 +3412,12 @@
           "sheet_title_create": "Create price list",
           "sheet_title_edit": "Edit price list",
           "subtitle": "Targeted pricing for customer groups, regions, or volume tiers.",
+          "tiers": {
+            "add": "Add quantity break",
+            "from": "From qty",
+            "quantity": "From quantity",
+            "remove_short": "Remove this quantity break"
+          },
           "title": "Price Lists",
           "unschedule": "Unschedule",
           "unschedule_confirm": {
@@ -4125,7 +4147,9 @@
           "adjustment_required": "Enter a percentage.",
           "adjustment_too_deep": "Must be less than 100%.",
           "ends_after_starts": "Must be after start date.",
-          "minimum_quantity_invalid": "Enter a whole number."
+          "minimum_quantity_invalid": "Enter a whole number.",
+          "tier_percentage_invalid": "Each tier needs a percentage below 100.",
+          "tier_quantity_invalid": "Each tier needs its own quantity above 1."
         }
       },
       "product_type_adds_options_one": "This type adds {{options}} to new products.",

@@ -187,9 +187,15 @@ module Spree
 
     scope :not_deleted, -> { where("#{Spree::Variant.quoted_table_name}.deleted_at IS NULL") }
 
+    # Variants the shop sells in this currency. Base prices only: a price
+    # list's rows are what one audience pays under an agreement, and a ladder
+    # holds several rows for one variant, so a contract-only variant is not
+    # available to everyone (docs/plans/6.0-volume-pricing.md).
     scope :for_currency_and_available_price_amount, lambda { |currency = nil|
       currency ||= Spree::Store.default.default_currency
-      joins(:prices).where("#{Spree::Price.table_name}.currency = ?", currency).where("#{Spree::Price.table_name}.amount IS NOT NULL").distinct
+      joins(:prices).
+        where(Spree::Price.table_name => { currency: currency, price_list_id: nil }).
+        where("#{Spree::Price.table_name}.amount IS NOT NULL").distinct
     }
 
     scope :active, lambda { |currency = nil|

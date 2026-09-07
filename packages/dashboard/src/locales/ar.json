@@ -147,10 +147,9 @@
         "updated": "تم تحديث الكتالوج"
       },
       "prices": {
+        "after_save": "بعد الحفظ",
         "column_price": "السعر",
         "column_source": "المصدر",
-        "unpriced": "لا يوجد سعر",
-        "after_save": "بعد الحفظ",
         "source": {
           "explicit": "مُدخَل",
           "automatic": "مُعدَّل",
@@ -160,7 +159,14 @@
           "explicit": "مبلغ مُدخَل في قائمة أسعار هذا الكتالوج.",
           "automatic": "سعر المتجر مع تطبيق نسبة هذا الكتالوج.",
           "base": "سعر المتجر العادي — هذا الكتالوج لا يحدد سعرًا لهذا المنتج."
-        }
+        },
+        "tier_count_one": "+{{count}} مستوى",
+        "tier_count_other": "+{{count}} مستويات",
+        "tier_from_one": "من {{count}}",
+        "tier_from_other": "من {{count}}",
+        "tier_preview": "ما تحتسبه هذه الاتفاقية",
+        "unpriced": "لا يوجد سعر",
+        "variant_default": "افتراضي"
       },
       "products": {
         "add_cta": "إضافة منتجات",
@@ -1586,6 +1592,15 @@
         },
         "adjustment_magnitude": {
           "label": "النسبة المئوية"
+        },
+        "adjustment_tiers": {
+          "add": "إضافة مستوى كمية",
+          "empty": "لا توجد مستويات — تنطبق النسبة أعلاه على كل الكميات.",
+          "help": "من كل كمية فصاعدًا تمنح الاتفاقية هذه النسبة. تُحتسب كل نسبة من السعر الأساسي، لا من المستوى الذي قبلها.",
+          "label": "مستويات الكمية",
+          "percentage": "النسبة المئوية",
+          "quantity": "من الكمية",
+          "remove": "إزالة المستوى من {quantity}"
         },
         "description": {
           "label": "الوصف",
@@ -3364,6 +3379,7 @@
             "save_success_one": "تم الحفظ {{count}} السعر",
             "save_success_other": "تم الحفظ {{count}} الأسعار",
             "search_placeholder": "البحث حسب المنتج، SKU، أو الخيار…",
+            "tier_needs_price": "أدخل سعرًا لشريحة الكمية التي تبدأ من {{quantity}}، أو امسح الكمية لإزالتها.",
             "title": "تعديل الأسعار — {{name}}",
             "variant_default": "تقصير"
           },
@@ -3413,6 +3429,12 @@
           "sheet_title_create": "إنشاء قائمة الأسعار",
           "sheet_title_edit": "تعديل قائمة الأسعار",
           "subtitle": "تسعير مستهدف لمجموعات العملاء أو المناطق أو شرائح الحجم.",
+          "tiers": {
+            "add": "إضافة مستوى كمية",
+            "from": "من الكمية",
+            "quantity": "من الكمية",
+            "remove_short": "إزالة مستوى الكمية هذا"
+          },
           "title": "Price Lists",
           "unschedule": "إلغاء الجدول الزمني",
           "unschedule_confirm": {
@@ -4147,7 +4169,9 @@
           "adjustment_required": "أدخل نسبة مئوية.",
           "adjustment_too_deep": "يجب أن تكون أقل من 100%.",
           "ends_after_starts": "يجب أن يكون بعد تاريخ البدء.",
-          "minimum_quantity_invalid": "أدخل عددًا صحيحًا."
+          "minimum_quantity_invalid": "أدخل عددًا صحيحًا.",
+          "tier_percentage_invalid": "كل مستوى يحتاج نسبة أقل من 100.",
+          "tier_quantity_invalid": "كل مستوى يحتاج كمية خاصة به أكبر من 1."
         }
       },
       "product_type_adds_options_one": "يضيف هذا النوع {{options}} إلى المنتجات الجديدة.",

@@ -147,10 +147,9 @@
         "updated": "目录已更新"
       },
       "prices": {
+        "after_save": "保存后",
         "column_price": "价格",
         "column_source": "来源",
-        "unpriced": "无价格",
-        "after_save": "保存后",
         "source": {
           "explicit": "已录入",
           "automatic": "已调整",
@@ -160,7 +159,14 @@
           "explicit": "在本目录自有价格表中录入的金额。",
           "automatic": "店铺价应用本目录百分比后的结果。",
           "base": "普通店铺价 — 本目录未为该商品定价。"
-        }
+        },
+        "tier_count_one": "+{{count}} 档",
+        "tier_count_other": "+{{count}} 档",
+        "tier_from_one": "满 {{count}}",
+        "tier_from_other": "满 {{count}}",
+        "tier_preview": "此协议的计价",
+        "unpriced": "无价格",
+        "variant_default": "默认"
       },
       "products": {
         "add_cta": "添加产品",
@@ -1563,6 +1569,15 @@
         },
         "adjustment_magnitude": {
           "label": "百分比"
+        },
+        "adjustment_tiers": {
+          "add": "添加数量阶梯",
+          "empty": "暂无阶梯——上面的百分比适用于所有数量。",
+          "help": "达到各档数量后，协议改用该百分比。每档都按基础价格计算，而不是在上一档的基础上叠加。",
+          "label": "数量阶梯",
+          "percentage": "百分比",
+          "quantity": "起订量",
+          "remove": "删除 {quantity} 起的阶梯"
         },
         "description": {
           "label": "描述",
@@ -3339,6 +3354,7 @@
             "save_success_one": "已保存 {{count}} 个价格",
             "save_success_other": "已保存 {{count}} 个价格",
             "search_placeholder": "按商品、SKU 或选项搜索…",
+            "tier_needs_price": "请为从 {{quantity}} 起的数量阶梯输入价格，或清除数量以将其移除。",
             "title": "编辑价格 — {{name}}",
             "variant_default": "默认"
           },
@@ -3388,6 +3404,12 @@
           "sheet_title_create": "创建价格表",
           "sheet_title_edit": "编辑价格表",
           "subtitle": "针对客户群体、地区或批量层级的定向定价。",
+          "tiers": {
+            "add": "添加数量阶梯",
+            "from": "起订量",
+            "quantity": "起订量",
+            "remove_short": "删除此数量阶梯"
+          },
           "title": "价格表",
           "unschedule": "取消安排",
           "unschedule_confirm": {
@@ -4116,7 +4138,9 @@
           "adjustment_required": "请输入百分比。",
           "adjustment_too_deep": "必须小于 100%。",
           "ends_after_starts": "必须晚于开始日期。",
-          "minimum_quantity_invalid": "请输入整数。"
+          "minimum_quantity_invalid": "请输入整数。",
+          "tier_percentage_invalid": "每一档的百分比都需要小于 100。",
+          "tier_quantity_invalid": "每一档都需要各自大于 1 的数量。"
         }
       },
       "product_type_adds_options_one": "此类型会为新商品添加{{options}}。",

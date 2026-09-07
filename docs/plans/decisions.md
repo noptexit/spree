@@ -4854,6 +4854,73 @@ core use a symbol and parameters, never a preformatted string; nothing in the
 dashboard prints an API `label`/`name`/`description` directly; shared admin copy
 goes in `dashboard-core` locales, never in `packages/seller-dashboard`.
 
+## 2026-09-07 — A column that changes row identity is not finished at the writers
+
+Building volume pricing (`6.0-volume-pricing.md`) added `min_quantity` to
+`spree_prices`, giving a variant several rows per price list where it had
+one. The writers and the resolver were updated; the readers that never
+ask the resolver were not, and that is where it showed.
+
+`Spree::Product#price_varies?` and `#lowest_price` iterate the product's
+`prices` — a `has_many through: variants` covering every row, price-list
+rows included. On sample data a toaster with a B2B agreement attached
+advertised "from $23.99" — a private contract rung — against a $39.99
+shop price, and reported its price as varying when it does not. The same
+shape sat in `Products.with_currency`,
+`Variant.for_currency_and_available_price_amount` and the line-item
+currency swap, which picked `prices.where(currency:).first` with no list
+filter and could now land on an arbitrary rung.
+
+**The leak predates the column.** Any price-list row already caused it,
+since none of those readers filtered `price_list_id`. What
+`min_quantity` changed is the odds: one stray row became a ladder of
+them, and the cheapest is the one a "lowest price" reader finds. Fixed by
+giving `Product` a `shop_prices` reader and scoping the three others to
+base prices.
+
+**The reusable part:** when a migration adds a dimension to a table,
+grep every reader that counts, joins to, or picks from that table without
+going through the thing that owns its semantics — here the pricing
+resolver. Updating the writers and the one canonical reader is the half
+of the job that is easy to see. Pricing paths were fine throughout:
+`Pricing::Context` carries quantity everywhere it matters and the cache
+key includes it.
+
+## 2026-09-07 — Volume pricing implementation: CSV deferred, the cap is a validation, and a ladder needs no quantity-1 rung
+
+Settled before building `6.0-volume-pricing.md`. Three of the four are
+narrow, one removes scope.
+
+**Price-list CSV is deferred rather than shipped.** The plan called for
+"CSV import/export of a list gains a `min_quantity` column", but no
+price-list CSV surface has ever existed — the only price columns in any
+export are the product CSV's base `price` / `compare_at_price`. Adding a
+column to a pipeline that is not there is a whole export model, presenter,
+import parser, endpoints and dashboard affordance: a feature of its own,
+not a phase of this one. Recorded so the next person building a
+price-list CSV carries `min_quantity` in its first version. The product
+CSV stays untouched — breaks require a price list in v1, so every base row
+is quantity 1 by construction and the column could never vary.
+
+**The ≤10 break cap is a model validation scoped to
+`(variant, currency, price_list)`**, and the bulk-upsert path refuses a
+batch that would cross it. A dashboard-only cap leaves the API unbounded,
+and the resolver scans a variant's rows per priced line, so an unbounded
+ladder is a cost paid on every cart recalculation.
+
+**A ladder needs no quantity-1 rung.** A list may price a variant only
+from 24 up; quantities below fall through to the next list or the base
+price exactly as they do for a variant the list never priced. That is the
+"wholesale from a case" agreement, and requiring a base rung would make
+bulk writes order-dependent (a batch inserting `24` before `1` would have
+to be sorted to pass). The tier editor locks its first row to 1 when one
+exists, which is a convenience and not a rule.
+
+**Both tier editors ship together** — the price-list bulk editor and the
+catalog's products-with-prices view — because they are one component with
+two homes, and shipping one leaves the other showing a "+3 tiers" badge
+nothing can open.
+
 ## 2026-09-07 — Three merchant asks resolved: market availability, the lot tier split, and the volume-pricing doctrine
 
 The next feedback batch (market exclusions, lot detail + tier question,

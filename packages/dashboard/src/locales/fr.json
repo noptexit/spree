@@ -147,10 +147,9 @@
         "updated": "Catalogue mis à jour"
       },
       "prices": {
+        "after_save": "Après enregistrement",
         "column_price": "Prix",
         "column_source": "Source",
-        "unpriced": "Aucun prix",
-        "after_save": "Après enregistrement",
         "source": {
           "explicit": "Saisi",
           "automatic": "Ajusté",
@@ -160,7 +159,14 @@
           "explicit": "Un montant saisi dans la liste de prix propre à ce catalogue.",
           "automatic": "Le prix boutique avec le pourcentage de ce catalogue.",
           "base": "Le prix boutique normal — ce catalogue ne fixe pas de prix pour ce produit."
-        }
+        },
+        "tier_count_one": "+{{count}} palier",
+        "tier_count_other": "+{{count}} paliers",
+        "tier_from_one": "Dès {{count}}",
+        "tier_from_other": "Dès {{count}}",
+        "tier_preview": "Ce que facture cet accord",
+        "unpriced": "Aucun prix",
+        "variant_default": "Par défaut"
       },
       "products": {
         "add_cta": "Ajouter des produits",
@@ -1568,6 +1574,15 @@
         },
         "adjustment_magnitude": {
           "label": "Pourcentage"
+        },
+        "adjustment_tiers": {
+          "add": "Ajouter un palier",
+          "empty": "Aucun palier — le pourcentage ci-dessus s’applique à toutes les quantités.",
+          "help": "À partir de chaque quantité, l’accord applique ce pourcentage. Chaque palier se calcule sur le prix de base, jamais sur le palier précédent.",
+          "label": "Paliers de quantité",
+          "percentage": "Pourcentage",
+          "quantity": "À partir de",
+          "remove": "Supprimer le palier à partir de {quantity}"
         },
         "description": {
           "label": "Description",
@@ -3347,6 +3362,7 @@
             "save_success_one": "{{count}} prix enregistré",
             "save_success_other": "{{count}} prix enregistrés",
             "search_placeholder": "Rechercher par produit, SKU ou option…",
+            "tier_needs_price": "Saisissez un prix pour le palier de quantité à partir de {{quantity}}, ou effacez la quantité pour le supprimer.",
             "title": "Modifier les prix — {{name}}",
             "variant_default": "Par défaut"
           },
@@ -3396,6 +3412,12 @@
           "sheet_title_create": "Créer une liste de prix",
           "sheet_title_edit": "Modifier la liste de prix",
           "subtitle": "Tarification ciblée pour des groupes de clients, des régions ou des paliers de volume.",
+          "tiers": {
+            "add": "Ajouter un palier de quantité",
+            "from": "Dès qté",
+            "quantity": "À partir de",
+            "remove_short": "Supprimer ce palier de quantité"
+          },
           "title": "Listes de prix",
           "unschedule": "Déplanifier",
           "unschedule_confirm": {
@@ -4125,7 +4147,9 @@
           "adjustment_required": "Saisissez un pourcentage.",
           "adjustment_too_deep": "Doit être inférieur à 100 %.",
           "ends_after_starts": "Doit être postérieur à la date de début.",
-          "minimum_quantity_invalid": "Saisissez un nombre entier."
+          "minimum_quantity_invalid": "Saisissez un nombre entier.",
+          "tier_percentage_invalid": "Chaque palier a besoin d’un pourcentage inférieur à 100.",
+          "tier_quantity_invalid": "Chaque palier a besoin de sa propre quantité, supérieure à 1."
         }
       },
       "product_type_adds_options_one": "Ce type ajoute {{options}} aux nouveaux produits.",

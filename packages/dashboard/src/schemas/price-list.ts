@@ -27,6 +27,14 @@ export type PricingMode = (typeof PRICING_MODES)[number]
  * a merchant thinks "15% off", not "-15".
  */
 export const ADJUSTMENT_DIRECTIONS = ['decrease', 'increase'] as const
+
+/**
+ * How many quantity tiers one ladder may hold — bands on a list's percentage
+ * or breaks on a variant's price rows. Mirrors the server's cap, so the
+ * editor stops offering "add" rather than letting a save be refused
+ * (docs/plans/6.0-volume-pricing.md).
+ */
+export const MAXIMUM_QUANTITY_TIERS = 10
 export type AdjustmentDirection = (typeof ADJUSTMENT_DIRECTIONS)[number]
 
 /**

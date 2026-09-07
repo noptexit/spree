@@ -80,12 +80,20 @@ export function NumberCell({
       commit()
       ctx.setEditing(null)
       // Move down to mirror Excel.
-      const next = { row: coords.row + 1, col: coords.col }
+      // Clamped like arrow navigation: on the last row Enter would otherwise
+      // anchor outside the grid, and every arrow key after it would compute
+      // from a position that does not exist.
+      const next = { row: Math.min(coords.row + 1, ctx.bounds.maxRow), col: coords.col }
       ctx.setAnchor(next)
       ctx.setExtent(next)
-      ctx.cells.get(`${next.row}.${next.col}`)?.focus()
+      ctx.focusCell(next)
     } else if (event.key === 'Escape') {
       event.preventDefault()
+      // Base UI's dialog listens for Escape on the document, so preventing
+      // the default is not enough to keep it from closing the sheet behind
+      // this cell: the key has to stop here (docs/plans/6.0-volume-pricing.md).
+      event.stopPropagation()
+      event.nativeEvent.stopImmediatePropagation()
       setDraft(value.toString())
       ctx.setEditing(null)
     } else if (event.key === 'Tab') {
@@ -96,7 +104,7 @@ export function NumberCell({
       const next = { row: coords.row, col: coords.col + dx }
       ctx.setAnchor(next)
       ctx.setExtent(next)
-      ctx.cells.get(`${next.row}.${next.col}`)?.focus()
+      ctx.focusCell(next)
     }
   }
 
@@ -223,12 +231,20 @@ export function MoneyCell({
       event.preventDefault()
       commit()
       ctx.setEditing(null)
-      const next = { row: coords.row + 1, col: coords.col }
+      // Clamped like arrow navigation: on the last row Enter would otherwise
+      // anchor outside the grid, and every arrow key after it would compute
+      // from a position that does not exist.
+      const next = { row: Math.min(coords.row + 1, ctx.bounds.maxRow), col: coords.col }
       ctx.setAnchor(next)
       ctx.setExtent(next)
-      ctx.cells.get(`${next.row}.${next.col}`)?.focus()
+      ctx.focusCell(next)
     } else if (event.key === 'Escape') {
       event.preventDefault()
+      // Base UI's dialog listens for Escape on the document, so preventing
+      // the default is not enough to keep it from closing the sheet behind
+      // this cell: the key has to stop here (docs/plans/6.0-volume-pricing.md).
+      event.stopPropagation()
+      event.nativeEvent.stopImmediatePropagation()
       setDraft(formatDisplay(value))
       ctx.setEditing(null)
     } else if (event.key === 'Tab') {
@@ -239,7 +255,7 @@ export function MoneyCell({
       const next = { row: coords.row, col: coords.col + dx }
       ctx.setAnchor(next)
       ctx.setExtent(next)
-      ctx.cells.get(`${next.row}.${next.col}`)?.focus()
+      ctx.focusCell(next)
     }
   }
 
@@ -350,12 +366,20 @@ export function TextCell({ coords, value, onChange, ariaLabel }: TextCellProps) 
       event.preventDefault()
       commit()
       ctx.setEditing(null)
-      const next = { row: coords.row + 1, col: coords.col }
+      // Clamped like arrow navigation: on the last row Enter would otherwise
+      // anchor outside the grid, and every arrow key after it would compute
+      // from a position that does not exist.
+      const next = { row: Math.min(coords.row + 1, ctx.bounds.maxRow), col: coords.col }
       ctx.setAnchor(next)
       ctx.setExtent(next)
-      ctx.cells.get(`${next.row}.${next.col}`)?.focus()
+      ctx.focusCell(next)
     } else if (event.key === 'Escape') {
       event.preventDefault()
+      // Base UI's dialog listens for Escape on the document, so preventing
+      // the default is not enough to keep it from closing the sheet behind
+      // this cell: the key has to stop here (docs/plans/6.0-volume-pricing.md).
+      event.stopPropagation()
+      event.nativeEvent.stopImmediatePropagation()
       setDraft(value ?? '')
       ctx.setEditing(null)
     } else if (event.key === 'Tab') {
@@ -366,7 +390,7 @@ export function TextCell({ coords, value, onChange, ariaLabel }: TextCellProps) 
       const next = { row: coords.row, col: coords.col + dx }
       ctx.setAnchor(next)
       ctx.setExtent(next)
-      ctx.cells.get(`${next.row}.${next.col}`)?.focus()
+      ctx.focusCell(next)
     }
   }
 

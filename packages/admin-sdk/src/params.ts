@@ -2058,6 +2058,19 @@ export interface PriceListRuleDraft {
   preferences?: Record<string, unknown>
 }
 
+/**
+ * One band of a price list's percentage adjustment: from this quantity up,
+ * the list adjusts base prices by this percentage instead of its own
+ * `price_adjustment_percentage`. The payload is the whole ladder — a band
+ * you leave out is a band you removed.
+ */
+export interface PriceAdjustmentTierParams {
+  /** Above 1; quantity 1 is the list's own `price_adjustment_percentage`. */
+  min_quantity: number
+  /** Signed: negative discounts, positive marks up. */
+  percentage: string | number
+}
+
 export interface PriceListCreateParams {
   name: string
   description?: string | null
@@ -2075,11 +2088,13 @@ export interface PriceListCreateParams {
   rules?: PriceListRuleDraft[]
   /**
    * Server-to-server shape. Each row upserts on
-   * `(variant_id, currency, price_list_id)`, so variants in this array
-   * implicitly become part of the list with the supplied amount.
+   * `(variant_id, currency, price_list_id, min_quantity)`, so variants in
+   * this array implicitly become part of the list with the supplied amount.
    * Curating whole products goes through `client.priceLists.products`.
    */
   prices?: PriceListPriceOverrideParams[]
+  /** Quantity bands on this list's percentage adjustment. */
+  price_adjustment_tiers?: PriceAdjustmentTierParams[]
 }
 
 export interface PriceListUpdateParams {
@@ -2097,20 +2112,24 @@ export interface PriceListUpdateParams {
    * managed through `client.priceLists.products` instead.
    */
   prices?: PriceListPriceOverrideParams[]
+  /** Quantity bands on this list's percentage adjustment. */
+  price_adjustment_tiers?: PriceAdjustmentTierParams[]
 }
 
 /**
  * One row in the inline `prices: [...]` array carried by
  * `PriceListCreateParams` / `PriceListUpdateParams`. The server upserts
- * on the unique key `(variant_id, currency, price_list_id)`, so the
- * row matches by triple — `id` is only useful when echoing back rows
- * read from a previous response. For first-time creates ship
+ * on the unique key `(variant_id, currency, price_list_id, min_quantity)`,
+ * so the row matches by that key — `id` is only useful when echoing back
+ * rows read from a previous response. For first-time creates ship
  * `variant_id` + `currency` + `amount` directly.
  */
 export interface PriceListPriceOverrideParams {
   id?: string
   variant_id: string
   currency: string
+  /** The rung of the variant's ladder. Omit for the bottom rung. */
+  min_quantity?: number
   amount?: string | number | null
   compare_at_amount?: string | number | null
 }
@@ -2127,6 +2146,11 @@ export interface PriceListPriceOverrideParams {
 export interface PriceCreateParams {
   variant_id: string
   currency: string
+  /**
+   * The quantity a line must reach for this price to apply. Omit for the
+   * ladder's bottom rung. Anything above 1 requires a `price_list_id`.
+   */
+  min_quantity?: number
   amount: string | number | null
   compare_at_amount?: string | number | null
   /** Omit / null for a base price; prefixed `pl_…` for a list override. */
@@ -2135,8 +2159,9 @@ export interface PriceCreateParams {
 
 export interface PriceUpdateParams {
   /** Mutating these would re-key the row against the unique
-   *  `(variant_id, currency, price_list_id)` index — not supported. */
-  // variant_id, currency, price_list_id intentionally omitted.
+   *  `(variant_id, currency, price_list_id, min_quantity)` index — not
+   *  supported. Move a rung by deleting it and creating the new one. */
+  // variant_id, currency, price_list_id, min_quantity intentionally omitted.
   amount?: string | number | null
   compare_at_amount?: string | number | null
 }
@@ -2148,8 +2173,9 @@ export interface PriceUpdateParams {
  *
  *   - `id` present → updates that row (404s if it doesn't exist or
  *     is out of the caller's store scope).
- *   - `id` absent  → upserts by `(variant_id, currency, price_list_id)`.
- *     The unique index on `spree_prices` decides update-vs-create.
+ *   - `id` absent  → upserts by
+ *     `(variant_id, currency, price_list_id, min_quantity)`. The unique
+ *     index on `spree_prices` decides update-vs-create.
  *
  * Useful for the spreadsheet (mostly updates) and for ad-hoc seeding
  * a fresh currency across many variants (mostly creates).
@@ -2163,6 +2189,12 @@ export interface PriceBulkUpsertRow {
   currency?: string
   /** Null / omitted = base price; prefixed `pl_…` = list override. */
   price_list_id?: string | null
+  /**
+   * The rung of the variant's ladder this row is. Omit for the bottom rung;
+   * anything above 1 requires a `price_list_id`. A variant carries at most
+   * ten rungs on one list per currency.
+   */
+  min_quantity?: number
   amount?: string | number | null
   compare_at_amount?: string | number | null
 }
@@ -2757,6 +2789,12 @@ export interface CatalogPriceListParams {
    * switching from hand-entered prices to a percentage sends.
    */
   prices?: Array<PriceListPriceOverrideParams>
+  /**
+   * Quantity bands on the percentage — "5% off, 10% from ten, 20% from
+   * fifty" as one agreement. The payload is the whole ladder, so an empty
+   * array clears it.
+   */
+  price_adjustment_tiers?: Array<PriceAdjustmentTierParams>
 }
 
 /**

@@ -66,6 +66,7 @@ export function DeferredProductMembershipCard({
   translationNamespace,
   description,
   extraColumns,
+  renderSubRows,
   headerActions,
 }: {
   parentId: string
@@ -94,6 +95,12 @@ export function DeferredProductMembershipCard({
   extraColumns?:
     | ProductMembershipListProps['extraColumns']
     | ((products: Product[]) => ProductMembershipListProps['extraColumns'])
+  /**
+   * Rows rendered beneath each product's own. Built from the server rows, so
+   * a caller can render per-variant detail the membership row itself has no
+   * room for (docs/plans/6.0-volume-pricing.md).
+   */
+  renderSubRows?: (products: Product[]) => ProductMembershipListProps['renderSubRows']
   /**
    * Extra controls beside Add products, for an action that belongs on these
    * rows rather than in a card of its own — pricing a catalog's assortment.
@@ -260,6 +267,7 @@ export function DeferredProductMembershipCard({
           extraColumns={
             typeof extraColumns === 'function' ? extraColumns(serverProducts) : extraColumns
           }
+          renderSubRows={renderSubRows?.(serverProducts)}
           renderTitle={(row) => (
             <Link
               to="/$storeId/products/$productId"

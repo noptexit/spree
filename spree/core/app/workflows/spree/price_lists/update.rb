@@ -8,7 +8,8 @@ module Spree
       hooks :validate, :after_update
 
       # @param price_list [Spree::PriceList]
-      # @param attributes [Hash] may carry `prices`
+      # @param attributes [Hash] may carry `prices` (each row optionally
+      #   carrying `min_quantity`) and `price_adjustment_tiers`
       # @return [Spree::ServiceModule::Result] value is the price list
       def perform(price_list:, attributes: {})
         super
@@ -53,7 +54,15 @@ module Spree
         rows = price_rows
         return if rows.empty?
 
-        Spree::Prices::BulkUpsert.call(rows: rows)
+        # The service refuses a batch that would take a ladder past the break
+        # cap. Ignoring that would answer 200 while writing nothing
+        # (docs/plans/6.0-volume-pricing.md).
+        result = Spree::Prices::BulkUpsert.call(rows: rows)
+        unless result.success?
+          price_list.errors.add(:base, :too_many_breaks, count: Spree::Price::MAXIMUM_BREAKS_PER_VARIANT)
+          return failure(price_list)
+        end
+
         touch_variants(rows.map { |row| row[:variant_id] }.uniq)
       end
 
@@ -80,6 +89,10 @@ module Spree
             variant_id: variant_id,
             currency: row[:currency],
             price_list_id: price_list.id,
+            # Absent means the ladder's bottom rung, which is every row
+            # written before quantity breaks existed
+            # (docs/plans/6.0-volume-pricing.md).
+            min_quantity: row[:min_quantity],
             amount: row[:amount],
             compare_at_amount: row[:compare_at_amount]
           }

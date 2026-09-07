@@ -149,10 +149,9 @@
         "updated": "Katalog zaktualizowany"
       },
       "prices": {
+        "after_save": "Po zapisaniu",
         "column_price": "Cena",
         "column_source": "Źródło",
-        "unpriced": "Brak ceny",
-        "after_save": "Po zapisaniu",
         "source": {
           "explicit": "Wprowadzona",
           "automatic": "Skorygowana",
@@ -162,7 +161,18 @@
           "explicit": "Kwota wprowadzona na własnej liście cen tego katalogu.",
           "automatic": "Cena sklepowa z zastosowanym procentem tego katalogu.",
           "base": "Zwykła cena sklepowa — ten katalog nie ustala ceny tego produktu."
-        }
+        },
+        "tier_count_few": "+{{count}} progi",
+        "tier_count_many": "+{{count}} progów",
+        "tier_count_one": "+{{count}} próg",
+        "tier_count_other": "+{{count}} progów",
+        "tier_from_few": "Od {{count}}",
+        "tier_from_many": "Od {{count}}",
+        "tier_from_one": "Od {{count}}",
+        "tier_from_other": "Od {{count}}",
+        "tier_preview": "Ile nalicza ta umowa",
+        "unpriced": "Brak ceny",
+        "variant_default": "Domyślny"
       },
       "products": {
         "add_cta": "Dodaj produkty",
@@ -1582,6 +1592,15 @@
         },
         "adjustment_magnitude": {
           "label": "Procent"
+        },
+        "adjustment_tiers": {
+          "add": "Dodaj próg ilościowy",
+          "empty": "Brak progów — procent powyżej obowiązuje dla każdej ilości.",
+          "help": "Od danej ilości w górę umowa daje ten procent. Każdy próg liczy się od ceny bazowej, nigdy od progu niższego.",
+          "label": "Progi ilościowe",
+          "percentage": "Procent",
+          "quantity": "Od ilości",
+          "remove": "Usuń próg od {quantity}"
         },
         "description": {
           "label": "Opis",
@@ -3383,6 +3402,7 @@
             "save_success_one": "Zapisano {{count}} cenę",
             "save_success_other": "Zapisano {{count}} cen",
             "search_placeholder": "Szukaj po produkcie, SKU lub opcji…",
+            "tier_needs_price": "Podaj cenę dla progu ilościowego od {{quantity}} lub wyczyść ilość, aby go usunąć.",
             "title": "Edytuj ceny — {{name}}",
             "variant_default": "Domyślny"
           },
@@ -3432,6 +3452,12 @@
           "sheet_title_create": "Utwórz cennik",
           "sheet_title_edit": "Edytuj cennik",
           "subtitle": "Ceny ukierunkowane na grupy klientów, regiony lub progi ilościowe.",
+          "tiers": {
+            "add": "Dodaj próg ilościowy",
+            "from": "Od ilości",
+            "quantity": "Od ilości",
+            "remove_short": "Usuń ten próg ilościowy"
+          },
           "title": "Cenniki",
           "unschedule": "Anuluj harmonogram",
           "unschedule_confirm": {
@@ -4175,7 +4201,9 @@
           "adjustment_required": "Podaj wartość procentową.",
           "adjustment_too_deep": "Musi być mniejsza niż 100%.",
           "ends_after_starts": "Musi być po dacie rozpoczęcia.",
-          "minimum_quantity_invalid": "Podaj liczbę całkowitą."
+          "minimum_quantity_invalid": "Podaj liczbę całkowitą.",
+          "tier_percentage_invalid": "Każdy próg potrzebuje procentu poniżej 100.",
+          "tier_quantity_invalid": "Każdy próg potrzebuje własnej ilości większej niż 1."
         }
       },
       "product_type_adds_options_few": "Ten typ dodaje {{options}} do nowych produktów.",
