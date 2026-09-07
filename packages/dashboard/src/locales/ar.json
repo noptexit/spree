@@ -1587,6 +1587,15 @@
         "adjustment_magnitude": {
           "label": "النسبة المئوية"
         },
+        "adjustment_tiers": {
+          "add": "إضافة مستوى كمية",
+          "empty": "لا توجد مستويات — تنطبق النسبة أعلاه على كل الكميات.",
+          "help": "من كل كمية فصاعدًا تمنح الاتفاقية هذه النسبة. تُحتسب كل نسبة من السعر الأساسي، لا من المستوى الذي قبلها.",
+          "label": "مستويات الكمية",
+          "percentage": "النسبة المئوية",
+          "quantity": "من الكمية",
+          "remove": "إزالة المستوى من {quantity}"
+        },
         "description": {
           "label": "الوصف",
           "placeholder": "وصف داخلي اختياري"
@@ -4147,7 +4156,9 @@
           "adjustment_required": "أدخل نسبة مئوية.",
           "adjustment_too_deep": "يجب أن تكون أقل من 100%.",
           "ends_after_starts": "يجب أن يكون بعد تاريخ البدء.",
-          "minimum_quantity_invalid": "أدخل عددًا صحيحًا."
+          "minimum_quantity_invalid": "أدخل عددًا صحيحًا.",
+          "tier_percentage_invalid": "كل مستوى يحتاج نسبة أقل من 100.",
+          "tier_quantity_invalid": "كل مستوى يحتاج كمية خاصة به أكبر من 1."
         }
       },
       "product_type_adds_options_one": "يضيف هذا النوع {{options}} إلى المنتجات الجديدة.",

@@ -1569,6 +1569,15 @@
         "adjustment_magnitude": {
           "label": "Prozentsatz"
         },
+        "adjustment_tiers": {
+          "add": "Mengenstufe hinzufügen",
+          "empty": "Keine Stufen — der Prozentsatz oben gilt für jede Menge.",
+          "help": "Ab der jeweiligen Menge gilt dieser Prozentsatz. Jede Stufe wird vom Grundpreis abgezogen, nie von der Stufe darunter.",
+          "label": "Mengenstufen",
+          "percentage": "Prozentsatz",
+          "quantity": "Ab Menge",
+          "remove": "Stufe ab {quantity} entfernen"
+        },
         "description": {
           "label": "Beschreibung",
           "placeholder": "Optionale interne Beschreibung"
@@ -4125,7 +4134,9 @@
           "adjustment_required": "Bitte einen Prozentsatz eingeben.",
           "adjustment_too_deep": "Muss kleiner als 100 % sein.",
           "ends_after_starts": "Muss nach dem Startdatum liegen.",
-          "minimum_quantity_invalid": "Geben Sie eine ganze Zahl ein."
+          "minimum_quantity_invalid": "Geben Sie eine ganze Zahl ein.",
+          "tier_percentage_invalid": "Jede Stufe braucht einen Prozentsatz unter 100.",
+          "tier_quantity_invalid": "Jede Stufe braucht eine eigene Menge über 1."
         }
       },
       "product_type_adds_options_one": "Dieser Typ fügt neuen Produkten {{options}} hinzu.",

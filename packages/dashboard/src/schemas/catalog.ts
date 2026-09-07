@@ -20,6 +20,18 @@ import {
  * (docs/plans/6.0-catalog-agreement-rework.md).
  */
 export const CATALOG_PRICING_MODES = ['base', ...PRICING_MODES] as const
+
+/**
+ * One quantity band as the form edits it: strings, so an unusable entry can
+ * be reported rather than silently coerced. Declared here rather than read
+ * off `CatalogFormValues` — the validators below take it as a parameter, and
+ * inferring it from the schema they belong to would make the schema's own
+ * type circular (docs/plans/6.0-volume-pricing.md).
+ */
+export interface AdjustmentTierValue {
+  min_quantity: string
+  percentage: string
+}
 export type CatalogPricingMode = (typeof CATALOG_PRICING_MODES)[number]
 
 /** Validation for the catalog create sheet and the agreement editor. */
@@ -50,6 +62,15 @@ export const catalogFormSchema = z
      * (docs/plans/6.0-price-list-automatic-pricing.md).
      */
     minimum_quantity: z.string().trim().optional(),
+    /**
+     * Quantity bands on the percentage: "5% off, 10% from ten, 20% from
+     * fifty" as one agreement, rather than one catalog per tier. Strings so
+     * an unusable entry can be reported rather than silently coerced
+     * (docs/plans/6.0-volume-pricing.md).
+     */
+    adjustment_tiers: z
+      .array(z.object({ min_quantity: z.string().trim(), percentage: z.string().trim() }))
+      .default([]),
     /**
      * The catalog-wide quantity terms — the middle of the three levels a
      * buyer's rules resolve through. Blank means this agreement is silent,
@@ -128,6 +149,23 @@ export const catalogFormSchema = z
       error: () => i18n.t('admin.products.price_lists.validation.adjustment_too_deep'),
     },
   )
+  // A band at 1 would shadow the percentage itself, and two bands at one
+  // quantity are one intent stated twice — the server refuses both, so the
+  // form says so before the round trip.
+  .refine(
+    (v) => v.pricing_mode !== 'automatic' || adjustmentTiersAreWellFormed(v.adjustment_tiers),
+    {
+      path: ['adjustment_tiers'],
+      error: () => i18n.t('admin.products.price_lists.validation.tier_quantity_invalid'),
+    },
+  )
+  .refine(
+    (v) => v.pricing_mode !== 'automatic' || v.adjustment_tiers.every(tierPercentageIsUsable),
+    {
+      path: ['adjustment_tiers'],
+      error: () => i18n.t('admin.products.price_lists.validation.tier_percentage_invalid'),
+    },
+  )
 
 /**
  * A product's quantity terms as typed. Both fields are strings so an
@@ -190,6 +228,7 @@ export const CATALOG_DEFAULTS: CatalogFormValues = {
   adjustment_magnitude: '',
   adjust_compare_at: false,
   minimum_quantity: '',
+  adjustment_tiers: [],
   minimum_order_quantity: '',
   order_multiple: '',
   staged_products: { adds: [], removes: [] },
@@ -264,12 +303,58 @@ function priceListPayload(values: CatalogFormValues, previousMode?: CatalogPrici
   // A minimum quantity rides as the list's volume rule; dropping it from the
   // list of rules is what clears it, so removing the threshold is a real
   // edit rather than a silent no-op.
-  const withRule = { ...base, rules: volumeRulePayload(values.minimum_quantity) }
+  const withRule = {
+    ...base,
+    rules: volumeRulePayload(values.minimum_quantity),
+    // The payload is the whole ladder, so a band the merchant deleted is a
+    // band absent from this array rather than one marked for removal.
+    price_adjustment_tiers: adjustmentTiersPayload(
+      values.adjustment_tiers,
+      values.adjustment_direction,
+    ),
+  }
 
   // Switching away from hand-entered prices clears them. An explicit amount
   // beats the adjustment by design, so leaving the old rows behind would
   // keep charging them while the card claims a percentage is in effect.
   return previousMode === 'fixed' ? { ...withRule, prices: [] } : withRule
+}
+
+/**
+ * Bands as the API takes them: signed percentages, matching the direction
+ * chosen for the list's own figure. A band a merchant enters as "20" under
+ * "decrease" is -20, exactly like the magnitude above it — one control for
+ * direction, so a ladder cannot half-discount and half-mark-up.
+ */
+function adjustmentTiersPayload(
+  tiers: AdjustmentTierValue[],
+  direction: (typeof ADJUSTMENT_DIRECTIONS)[number],
+) {
+  return tiers.flatMap((tier) => {
+    const quantity = parseMinimumQuantity(tier.min_quantity)
+    const magnitude = parsePercentage(tier.percentage)
+    if (quantity === null || quantity < 2 || magnitude === null) return []
+
+    return [
+      {
+        min_quantity: quantity,
+        percentage: String(direction === 'decrease' ? -magnitude : magnitude),
+      },
+    ]
+  })
+}
+
+/** Every band above one unit, and no quantity used twice. */
+function adjustmentTiersAreWellFormed(tiers: AdjustmentTierValue[]): boolean {
+  const quantities = tiers.map((tier) => parseMinimumQuantity(tier.min_quantity))
+  if (quantities.some((quantity) => quantity === null || quantity < 2)) return false
+
+  return new Set(quantities).size === quantities.length
+}
+
+function tierPercentageIsUsable(tier: AdjustmentTierValue): boolean {
+  const magnitude = parsePercentage(tier.percentage)
+  return magnitude !== null && magnitude < 100
 }
 
 function volumeRulePayload(minimumQuantity: string | undefined) {
@@ -287,7 +372,13 @@ function volumeRulePayload(minimumQuantity: string | undefined) {
  */
 export function catalogPricingValues(
   priceList:
-    | Pick<PriceList, 'price_adjustment_percentage' | 'adjust_compare_at' | 'price_rules'>
+    | Pick<
+        PriceList,
+        | 'price_adjustment_percentage'
+        | 'adjust_compare_at'
+        | 'price_rules'
+        | 'price_adjustment_tiers'
+      >
     | null
     | undefined,
 ): {
@@ -296,6 +387,7 @@ export function catalogPricingValues(
   adjustment_magnitude: string
   adjust_compare_at: boolean
   minimum_quantity: string
+  adjustment_tiers: AdjustmentTierValue[]
 } {
   if (!priceList) {
     return {
@@ -304,6 +396,7 @@ export function catalogPricingValues(
       adjustment_magnitude: '',
       adjust_compare_at: false,
       minimum_quantity: '',
+      adjustment_tiers: [],
     }
   }
 
@@ -317,6 +410,12 @@ export function catalogPricingValues(
     adjustment_magnitude,
     adjust_compare_at: priceList.adjust_compare_at ?? false,
     minimum_quantity: minimumQuantityOf(priceList.price_rules),
+    // Shown as magnitudes, like the list's own figure: the direction select
+    // above them carries the sign for the whole ladder.
+    adjustment_tiers: (priceList.price_adjustment_tiers ?? []).map((tier) => ({
+      min_quantity: String(tier.min_quantity),
+      percentage: String(Math.abs(Number(tier.percentage))),
+    })),
   }
 }
 

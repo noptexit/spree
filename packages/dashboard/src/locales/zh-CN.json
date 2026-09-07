@@ -1564,6 +1564,15 @@
         "adjustment_magnitude": {
           "label": "百分比"
         },
+        "adjustment_tiers": {
+          "add": "添加数量阶梯",
+          "empty": "暂无阶梯——上面的百分比适用于所有数量。",
+          "help": "达到各档数量后，协议改用该百分比。每档都按基础价格计算，而不是在上一档的基础上叠加。",
+          "label": "数量阶梯",
+          "percentage": "百分比",
+          "quantity": "起订量",
+          "remove": "删除 {quantity} 起的阶梯"
+        },
         "description": {
           "label": "描述",
           "placeholder": "可选的内部描述"
@@ -4116,7 +4125,9 @@
           "adjustment_required": "请输入百分比。",
           "adjustment_too_deep": "必须小于 100%。",
           "ends_after_starts": "必须晚于开始日期。",
-          "minimum_quantity_invalid": "请输入整数。"
+          "minimum_quantity_invalid": "请输入整数。",
+          "tier_percentage_invalid": "每一档的百分比都需要小于 100。",
+          "tier_quantity_invalid": "每一档都需要各自大于 1 的数量。"
         }
       },
       "product_type_adds_options_one": "此类型会为新商品添加{{options}}。",

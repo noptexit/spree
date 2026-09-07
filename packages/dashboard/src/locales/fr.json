@@ -1569,6 +1569,15 @@
         "adjustment_magnitude": {
           "label": "Pourcentage"
         },
+        "adjustment_tiers": {
+          "add": "Ajouter un palier",
+          "empty": "Aucun palier — le pourcentage ci-dessus s’applique à toutes les quantités.",
+          "help": "À partir de chaque quantité, l’accord applique ce pourcentage. Chaque palier se calcule sur le prix de base, jamais sur le palier précédent.",
+          "label": "Paliers de quantité",
+          "percentage": "Pourcentage",
+          "quantity": "À partir de",
+          "remove": "Supprimer le palier à partir de {quantity}"
+        },
         "description": {
           "label": "Description",
           "placeholder": "Description interne facultative"
@@ -4125,7 +4134,9 @@
           "adjustment_required": "Saisissez un pourcentage.",
           "adjustment_too_deep": "Doit être inférieur à 100 %.",
           "ends_after_starts": "Doit être postérieur à la date de début.",
-          "minimum_quantity_invalid": "Saisissez un nombre entier."
+          "minimum_quantity_invalid": "Saisissez un nombre entier.",
+          "tier_percentage_invalid": "Chaque palier a besoin d’un pourcentage inférieur à 100.",
+          "tier_quantity_invalid": "Chaque palier a besoin de sa propre quantité, supérieure à 1."
         }
       },
       "product_type_adds_options_one": "Ce type ajoute {{options}} aux nouveaux produits.",

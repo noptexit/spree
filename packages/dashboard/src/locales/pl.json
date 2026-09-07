@@ -1583,6 +1583,15 @@
         "adjustment_magnitude": {
           "label": "Procent"
         },
+        "adjustment_tiers": {
+          "add": "Dodaj próg ilościowy",
+          "empty": "Brak progów — procent powyżej obowiązuje dla każdej ilości.",
+          "help": "Od danej ilości w górę umowa daje ten procent. Każdy próg liczy się od ceny bazowej, nigdy od progu niższego.",
+          "label": "Progi ilościowe",
+          "percentage": "Procent",
+          "quantity": "Od ilości",
+          "remove": "Usuń próg od {quantity}"
+        },
         "description": {
           "label": "Opis",
           "placeholder": "Opcjonalny opis wewnętrzny"
@@ -4175,7 +4184,9 @@
           "adjustment_required": "Podaj wartość procentową.",
           "adjustment_too_deep": "Musi być mniejsza niż 100%.",
           "ends_after_starts": "Musi być po dacie rozpoczęcia.",
-          "minimum_quantity_invalid": "Podaj liczbę całkowitą."
+          "minimum_quantity_invalid": "Podaj liczbę całkowitą.",
+          "tier_percentage_invalid": "Każdy próg potrzebuje procentu poniżej 100.",
+          "tier_quantity_invalid": "Każdy próg potrzebuje własnej ilości większej niż 1."
         }
       },
       "product_type_adds_options_few": "Ten typ dodaje {{options}} do nowych produktów.",

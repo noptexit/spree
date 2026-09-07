@@ -50,6 +50,7 @@ export * from './spree/label-upload-dialog'
 export * from './spree/order-cancel-dialog'
 export * from './spree/post-sale-create-dialogs'
 export * from './spree/post-sale-fields'
+export * from './spree/quantity-tier-editor'
 export * from './spree/return-dialogs'
 
 // JsonPreviewDrawer and JsonValueView are intentionally NOT re-exported from
