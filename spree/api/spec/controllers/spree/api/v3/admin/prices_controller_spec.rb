@@ -356,10 +356,10 @@ RSpec.describe Spree::Api::V3::Admin::PricesController, type: :controller do
       expect(rows.pluck(:min_quantity, :amount)).to eq([[1, 10.0], [24, 8.5]])
     end
 
-    # This path writes in SQL, so the model validation never runs — the cap
-    # has to be enforced where the offending rows can still be named.
+    # This path writes in SQL, so the model validation never runs — the cap is
+    # enforced in the service every write path reaches.
     it 'refuses a batch that would push the ladder past the cap' do
-      rungs = (1..Spree::Price::MAXIMUM_BREAKS_PER_VARIANT + 1).map do |rung|
+      rungs = (2..(Spree::Price::MAXIMUM_BREAKS_PER_VARIANT + 2)).map do |rung|
         {
           variant_id: variant.prefixed_id, currency: 'USD',
           price_list_id: price_list.prefixed_id, min_quantity: rung, amount: '9.00'
@@ -370,13 +370,13 @@ RSpec.describe Spree::Api::V3::Admin::PricesController, type: :controller do
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(json_response['error']['code']).to eq('too_many_breaks')
-      expect(Spree::Price.where(variant: variant, currency: 'USD', price_list: price_list)).to be_empty
+      expect(Spree::Price.where(variant: variant, currency: 'USD', price_list: price_list).breaks).to be_empty
     end
 
     # Re-sending a full ladder must not be refused for being the size it
     # already is.
     it 'accepts a batch that rewrites a full ladder in place' do
-      full = (1..Spree::Price::MAXIMUM_BREAKS_PER_VARIANT).map do |rung|
+      full = (2..(Spree::Price::MAXIMUM_BREAKS_PER_VARIANT + 1)).map do |rung|
         {
           variant_id: variant.prefixed_id, currency: 'USD',
           price_list_id: price_list.prefixed_id, min_quantity: rung, amount: '9.00'

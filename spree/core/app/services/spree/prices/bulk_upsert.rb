@@ -33,10 +33,12 @@ module Spree
       #   `amount` is treated as "clear this price", and a blank
       #   `min_quantity` means the ladder's bottom rung.
       # @return [Spree::ServiceModule::Result] success carries
-      #   `{ price_count: N }` — the number of rows passed to
-      #   `upsert_all`. The break cap is enforced by the caller that can
-      #   report which rows crossed it — see the admin prices controller —
-      #   since this path writes in SQL and runs no model validations.
+      #   `{ price_count: N }` — the number of rows passed to `upsert_all`.
+      #   Fails with the offending rows when a batch would take a variant
+      #   past {Spree::Price::MAXIMUM_BREAKS_PER_VARIANT} breaks on one list:
+      #   this path writes in SQL and runs no model validations, so the cap
+      #   is enforced here rather than in each of the three controllers that
+      #   reach it (docs/plans/6.0-volume-pricing.md).
       def call(rows:)
         rows = Array(rows).map { |r| r.with_indifferent_access }
         keyed = rows.select { |r| r[:variant_id].present? && r[:currency].present? }
@@ -51,6 +53,9 @@ module Spree
         affected_keys = deduped.map { |r| row_key(r) }
 
         return success(price_count: 0) if affected_keys.empty?
+
+        over_cap = ladders_over_cap(upsert_rows)
+        return failure(nil, over_cap: over_cap) if over_cap.any?
 
         base_rows, override_rows = payload.partition { |r| r[:price_list_id].nil? }
 
@@ -119,6 +124,37 @@ module Spree
       def quantity_of(row)
         quantity = row[:min_quantity].to_i
         quantity.positive? ? quantity : 1
+      end
+
+      # Which ladders this batch would take past the cap, counted the way the
+      # constant is named: breaks *above* the bottom rung, so a variant priced
+      # at one figure plus ten breaks is exactly at the limit.
+      #
+      # Only ladders the batch actually adds a break to are checked, so an
+      # ordinary spreadsheet save — one quantity-1 row per variant — costs no
+      # extra queries at all.
+      #
+      # @param rows [Array<Hash>] the rows carrying an amount
+      # @return [Array<Hash>] `[{ variant_id:, currency:, price_list_id: }, ...]`
+      def ladders_over_cap(rows)
+        touched = rows.each_with_object(Hash.new { |hash, key| hash[key] = Set.new }) do |row, ladders|
+          next if row[:price_list_id].blank?
+          next if quantity_of(row) == 1
+
+          ladders[[row[:variant_id].to_s, row[:currency], row[:price_list_id].to_s]] << quantity_of(row)
+        end
+        return [] if touched.empty?
+
+        touched.filter_map do |(variant_id, currency, price_list_id), incoming|
+          stored = Spree::Price.
+                   where(variant_id: variant_id, currency: currency, price_list_id: price_list_id).
+                   breaks.
+                   pluck(:min_quantity)
+
+          next if (stored.to_set | incoming).size <= Spree::Price::MAXIMUM_BREAKS_PER_VARIANT
+
+          { variant_id: variant_id, currency: currency, price_list_id: price_list_id }
+        end
       end
 
       # Parses locale-aware decimal input ("1.234,56" in DE, "1,234.56"

@@ -151,6 +151,78 @@ RSpec.describe Spree::Catalogs::ResolvePrices do
 
       expect(resolve(catalog.reload).amount).to eq(charged_to_buyer)
     end
+
+    # Quantity ladders (docs/plans/6.0-volume-pricing.md). This reading makes
+    # no purchase, so it must answer for one unit — and agree with what a
+    # buyer of one is actually charged.
+    context 'with a quantity ladder' do
+      let(:list) { create(:price_list, :active, store: store, catalog: catalog) }
+
+      it 'reads the bottom rung and counts the ones above it' do
+        create(:price, variant: variant, price_list: list, amount: 60, currency: 'USD', min_quantity: 1)
+        create(:price, variant: variant, price_list: list, amount: 50, currency: 'USD', min_quantity: 24)
+
+        price = resolve(catalog.reload)
+
+        expect(price.amount).to eq(60)
+        expect(price.amount).to eq(charged_to_buyer)
+        expect(price.source).to eq('explicit')
+        expect(price.break_count).to eq(1)
+        expect(price).to be_tiered
+      end
+
+      # A ladder starting above one unit prices nothing for a buyer of one, so
+      # reading its first rung as the agreement's price would name an amount
+      # nobody is charged.
+      it 'reads base when the ladder starts above one unit' do
+        create(:price, variant: variant, price_list: list, amount: 50, currency: 'USD', min_quantity: 24)
+
+        price = resolve(catalog.reload)
+
+        expect(price.amount).to eq(charged_to_buyer)
+        expect(price.source).to eq('base')
+        expect(price.break_count).to eq(1)
+      end
+
+      # A laddered variant is priced by its ladder alone, so the list's
+      # percentage must not be reported for it either.
+      it 'does not report the percentage for a laddered variant' do
+        list.update!(price_adjustment_percentage: -15)
+        create(:price, variant: variant, price_list: list, amount: 50, currency: 'USD', min_quantity: 24)
+
+        price = resolve(catalog.reload)
+
+        expect(price.amount).to eq(charged_to_buyer)
+        expect(price.source).to eq('base')
+      end
+    end
+
+    context 'with quantity bands on the percentage' do
+      it 'reads the quantity-1 percentage and counts the bands above it' do
+        list = create(:price_list, :active, store: store, catalog: catalog,
+                                            price_adjustment_percentage: -10)
+        create(:price_adjustment_tier, price_list: list, min_quantity: 50, percentage: -20)
+
+        price = resolve(catalog.reload)
+
+        expect(price.amount).to eq(90)
+        expect(price.amount).to eq(charged_to_buyer)
+        expect(price.source).to eq('automatic')
+        expect(price.break_count).to eq(1)
+      end
+
+      # A list that only discounts from a quantity up charges base for one.
+      it 'reads base for a bands-only list, with the bands counted' do
+        list = create(:price_list, :active, store: store, catalog: catalog)
+        create(:price_adjustment_tier, price_list: list, min_quantity: 50, percentage: -20)
+
+        price = resolve(catalog.reload)
+
+        expect(price.amount).to eq(charged_to_buyer)
+        expect(price.source).to eq('base')
+        expect(price.break_count).to eq(1)
+      end
+    end
   end
 
   describe '#preload' do

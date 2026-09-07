@@ -160,7 +160,9 @@ export const catalogFormSchema = z
     },
   )
   .refine(
-    (v) => v.pricing_mode !== 'automatic' || v.adjustment_tiers.every(tierPercentageIsUsable),
+    (v) =>
+      v.pricing_mode !== 'automatic' ||
+      v.adjustment_tiers.every((tier) => tierPercentageIsUsable(tier, v.adjustment_direction)),
     {
       path: ['adjustment_tiers'],
       error: () => i18n.t('admin.products.price_lists.validation.tier_percentage_invalid'),
@@ -282,11 +284,16 @@ function priceListPayload(values: CatalogFormValues, previousMode?: CatalogPrici
 
   if (values.pricing_mode === 'fixed') {
     // A fixed list holds explicit rows; clearing any adjustment is what
-    // makes it fixed. The quantity threshold goes with the percentage — left
-    // behind it would gate the hand-entered prices, and the card stops
-    // showing it, so nothing would explain the gap. `rules: []` clears only
-    // the contextual ones; the server keeps the rest.
-    return { price_adjustment_percentage: null, adjust_compare_at: false, rules: [] }
+    // makes it fixed. The quantity threshold and the percentage's bands go
+    // with it — a band left behind still derives a discount (a list with
+    // bands prices automatically even with no percentage of its own), while
+    // the card shows no percentage at all to explain it.
+    return {
+      price_adjustment_percentage: null,
+      adjust_compare_at: false,
+      rules: [],
+      price_adjustment_tiers: [],
+    }
   }
 
   const magnitude = parsePercentage(values.adjustment_magnitude)
@@ -352,9 +359,16 @@ function adjustmentTiersAreWellFormed(tiers: AdjustmentTierValue[]): boolean {
   return new Set(quantities).size === quantities.length
 }
 
-function tierPercentageIsUsable(tier: AdjustmentTierValue): boolean {
+// A discount past 100% would price below zero; a markup has no ceiling short
+// of what the column holds. The same bound the list's own figure carries.
+function tierPercentageIsUsable(
+  tier: AdjustmentTierValue,
+  direction: (typeof ADJUSTMENT_DIRECTIONS)[number],
+): boolean {
   const magnitude = parsePercentage(tier.percentage)
-  return magnitude !== null && magnitude < 100
+  if (magnitude === null) return false
+
+  return direction === 'increase' || magnitude < 100
 }
 
 function volumeRulePayload(minimumQuantity: string | undefined) {
@@ -400,19 +414,33 @@ export function catalogPricingValues(
     }
   }
 
+  const bands = priceList.price_adjustment_tiers ?? []
   const { pricing_mode, adjustment_direction, adjustment_magnitude } = adjustmentFormValues(
     priceList.price_adjustment_percentage,
   )
 
+  // A list may discount only from a quantity up, with no percentage of its
+  // own — the backend prices that automatically, so reading it as a fixed
+  // list would hide the bands behind a card that cannot show them, and the
+  // next Save would clear terms the merchant never saw
+  // (docs/plans/6.0-volume-pricing.md).
+  const bandsOnly = pricing_mode !== 'automatic' && bands.length > 0
+
   return {
-    pricing_mode,
-    adjustment_direction,
+    pricing_mode: bandsOnly ? 'automatic' : pricing_mode,
+    // With no percentage of its own the direction comes from the bands, so
+    // the magnitudes below read as the discounts they are.
+    adjustment_direction: bandsOnly
+      ? Number(bands[0]?.percentage) > 0
+        ? 'increase'
+        : 'decrease'
+      : adjustment_direction,
     adjustment_magnitude,
     adjust_compare_at: priceList.adjust_compare_at ?? false,
     minimum_quantity: minimumQuantityOf(priceList.price_rules),
     // Shown as magnitudes, like the list's own figure: the direction select
     // above them carries the sign for the whole ladder.
-    adjustment_tiers: (priceList.price_adjustment_tiers ?? []).map((tier) => ({
+    adjustment_tiers: bands.map((tier) => ({
       min_quantity: String(tier.min_quantity),
       percentage: String(Math.abs(Number(tier.percentage))),
     })),

@@ -157,4 +157,47 @@ RSpec.describe Spree::Prices::BulkUpsert do
       expect(surviving.first.amount).to eq(BigDecimal('12.34'))
     end
   end
+
+  # The cap lives here because every write path reaches this service and none
+  # of them run model validations (docs/plans/6.0-volume-pricing.md).
+  describe 'the quantity-break cap' do
+    let(:price_list) { create(:price_list, store: @default_store) }
+    let(:variant) { create(:variant) }
+
+    def rung(quantity, amount = '9.00')
+      { variant_id: variant.id, currency: 'USD', price_list_id: price_list.id,
+        min_quantity: quantity, amount: amount }
+    end
+
+    it 'refuses a batch that would take a variant past the cap' do
+      result = described_class.call(rows: (2..(Spree::Price::MAXIMUM_BREAKS_PER_VARIANT + 2)).map { |q| rung(q) })
+
+      expect(result).to be_failure
+      expect(result.error.value[:over_cap].first).to include(variant_id: variant.id.to_s)
+      expect(Spree::Price.where(price_list: price_list).breaks).to be_empty
+    end
+
+    it 'accepts a ladder exactly at the cap, bottom rung included' do
+      rows = [rung(1, '10.00')] + (2..(Spree::Price::MAXIMUM_BREAKS_PER_VARIANT + 1)).map { |q| rung(q) }
+
+      expect(described_class.call(rows: rows)).to be_success
+      expect(Spree::Price.where(price_list: price_list, variant: variant).count).
+        to eq(Spree::Price::MAXIMUM_BREAKS_PER_VARIANT + 1)
+    end
+
+    it 'lets a full ladder be rewritten in place' do
+      rows = (2..(Spree::Price::MAXIMUM_BREAKS_PER_VARIANT + 1)).map { |q| rung(q) }
+      described_class.call(rows: rows)
+
+      expect(described_class.call(rows: rows.map { |row| row.merge(amount: '8.00') })).to be_success
+    end
+
+    # An ordinary spreadsheet save carries no breaks at all, and must not pay
+    # for the check.
+    it 'runs no cap query for a batch of bottom rungs' do
+      expect(Spree::Price).not_to receive(:breaks)
+
+      expect(described_class.call(rows: [rung(1, '10.00')])).to be_success
+    end
+  end
 end

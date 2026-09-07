@@ -252,13 +252,18 @@ module Spree
       errors.add(:min_quantity, :requires_price_list)
     end
 
-    # Counted over the siblings this row would join, so the message names the
-    # ladder that is full rather than the row that arrived last.
+    # Counted the way the constant is named: breaks *above* the bottom rung,
+    # so a variant priced at one figure plus ten breaks is exactly at the
+    # limit. Placeholder rows carry no amount and charge nothing, so they do
+    # not fill the ladder — the bulk path counts the same rows, and a cap two
+    # writers disagree about is one that refuses what it just allowed.
     def breaks_within_cap
+      return unless quantity_break?
       return if price_list_id.blank? || variant_id.blank? || currency.blank?
       return unless will_save_change_to_attribute?(:min_quantity) || new_record?
 
-      siblings = self.class.where(variant_id: variant_id, currency: currency, price_list_id: price_list_id)
+      siblings = self.class.where(variant_id: variant_id, currency: currency, price_list_id: price_list_id).
+                 breaks.where.not(amount: nil)
       siblings = siblings.where.not(id: id) if persisted?
       return if siblings.count < MAXIMUM_BREAKS_PER_VARIANT
 

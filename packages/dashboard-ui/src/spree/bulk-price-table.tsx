@@ -61,8 +61,11 @@ export interface BulkPriceTableLabels {
   compareAtAriaTemplate?: string
   /** Column header over the quantity-break buttons. Omit to hide the column. */
   tiers?: string
-  /** Label on a row's tier button. `{count}` is replaced with the break count. */
-  tiersWithCount?: string
+  /**
+   * Labels a row's tier button. Called with the break count so the caller's
+   * own translator picks the plural form — a pre-substituted template cannot.
+   */
+  tiersWithCount?: (count: number) => string
   /** Label on a row's tier button when the row carries no breaks yet. */
   tiersEmpty?: string
 }
@@ -202,8 +205,7 @@ export function BulkPriceTable({
                       onClick={() => onOpenTiers(r.id)}
                     >
                       {count > 0
-                        ? (labels.tiersWithCount?.replace('{count}', String(count)) ??
-                          String(count))
+                        ? (labels.tiersWithCount?.(count) ?? String(count))
                         : (labels.tiersEmpty ?? '+')}
                     </Button>
                   </div>

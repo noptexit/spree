@@ -230,8 +230,11 @@ describe Spree::Price, type: :model do
         expect(subject).to be_valid
       end
 
+      # The cap counts breaks, not rows: a variant priced at one figure plus
+      # ten breaks is exactly at the limit.
       it 'refuses a ladder past the cap' do
-        (1..Spree::Price::MAXIMUM_BREAKS_PER_VARIANT).each do |rung|
+        create(:price, variant: variant, currency: 'USD', amount: 10, price_list: price_list, min_quantity: 1)
+        (2..(Spree::Price::MAXIMUM_BREAKS_PER_VARIANT + 1)).each do |rung|
           create(:price, variant: variant, currency: 'USD', amount: 10, price_list: price_list, min_quantity: rung)
         end
 
@@ -241,10 +244,20 @@ describe Spree::Price, type: :model do
         expect(eleventh.errors.messages[:min_quantity].first).to include('at most 10')
       end
 
+      # A placeholder charges nothing, so it does not fill the ladder — the
+      # bulk path counts the same rows.
+      it 'does not count placeholder rows against the cap' do
+        (2..(Spree::Price::MAXIMUM_BREAKS_PER_VARIANT + 1)).each do |rung|
+          create(:price, variant: variant, currency: 'USD', amount: nil, price_list: price_list, min_quantity: rung)
+        end
+
+        expect(build(:price, variant: variant, currency: 'USD', amount: 9, price_list: price_list, min_quantity: 99)).to be_valid
+      end
+
       # The cap counts a variant's rungs on one list in one currency, so a
       # second currency is a ladder of its own.
       it 'counts the cap per currency' do
-        (1..Spree::Price::MAXIMUM_BREAKS_PER_VARIANT).each do |rung|
+        (2..(Spree::Price::MAXIMUM_BREAKS_PER_VARIANT + 1)).each do |rung|
           create(:price, variant: variant, currency: 'USD', amount: 10, price_list: price_list, min_quantity: rung)
         end
 

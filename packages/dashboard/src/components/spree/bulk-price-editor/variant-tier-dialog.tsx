@@ -131,15 +131,21 @@ export function VariantTierDialog({
         amount: toCanonical(rung.value),
       }))
 
-    // A rung the merchant deleted is a stored row this draft no longer names.
-    const keptIds = new Set(draft.map((rung) => rung.priceId).filter(Boolean))
+    // A rung is identified by its quantity, not by the row it came from:
+    // moving a break from 24 to 30 writes a new row, so keying the removals
+    // on the row id would leave the 24 behind and charge it to orders of
+    // 24-29 (docs/plans/6.0-volume-pricing.md).
+    const keptQuantities = new Set(upserts.map((rung) => rung.min_quantity))
     const removedIds = stored
-      .filter((rung) => rung.min_quantity > 1 && !keptIds.has(rung.id))
+      .filter((rung) => rung.min_quantity > 1 && !keptQuantities.has(rung.min_quantity))
       .map((rung) => rung.id)
 
     try {
-      if (removedIds.length > 0) await adminClient.prices.bulkDestroy({ ids: removedIds })
+      // Written before the deletions, so a refused write (the cap, a
+      // validation) leaves the stored ladder as it was rather than half
+      // erased with nothing put in its place.
       if (upserts.length > 0) await bulkUpsertAsync({ prices: upserts })
+      if (removedIds.length > 0) await adminClient.prices.bulkDestroy({ ids: removedIds })
 
       await queryClient.invalidateQueries({ queryKey: ['prices'] })
       toastManager.add({

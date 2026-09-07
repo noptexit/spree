@@ -39,6 +39,13 @@ describe Spree::PriceAdjustmentTier, type: :model do
       expect(band.call(999.999)).to be_valid
     end
 
+    # A factor of exactly 1 makes the list decline to price the line, so a
+    # band reading "no further discount here" would fall through to the next
+    # list instead. Removing the band is how a ladder stops.
+    it 'refuses a band of zero rather than accepting one that does nothing' do
+      expect(build(:price_adjustment_tier, price_list: price_list, min_quantity: 10, percentage: 0)).not_to be_valid
+    end
+
     it 'refuses a ladder past the cap' do
       (2..(described_class::MAXIMUM_TIERS_PER_LIST + 1)).each do |quantity|
         create(:price_adjustment_tier, price_list: price_list, min_quantity: quantity)

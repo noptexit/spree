@@ -24,15 +24,24 @@ module Spree
     # The same bounds the list's own column carries: at -100 every derived
     # price is zero, below it the arithmetic goes negative, and above 1000 the
     # decimal(6,3) column cannot hold the value.
+    # Zero is refused rather than accepted and then ignored: "0% from ten"
+    # reads as "no further discount at this tier", but a factor of exactly 1
+    # makes the list decline to price the line at all, so it would fall
+    # through to the next list or base — the opposite of what it says
+    # (docs/plans/6.0-volume-pricing.md). Removing the band is how a merchant
+    # says the ladder stops here.
     validates :percentage, presence: true,
-              numericality: { greater_than: -100, less_than: 1000 }
+              numericality: { greater_than: -100, less_than: 1000, other_than: 0 }
     validate :tiers_within_cap
 
     scope :by_quantity, -> { order(min_quantity: :asc) }
     # Bands a line of this size qualifies for, deepest first.
     scope :for_quantity, ->(quantity) { where(min_quantity: ..quantity.to_i).order(min_quantity: :desc) }
 
-    self.whitelisted_ransackable_attributes = %w[min_quantity percentage price_list_id]
+    # No ransack allowlist: a band is reached only through the list that owns
+    # it, exactly like a PriceRule, and there is no endpoint that filters
+    # bands. An entry here would be a filter any caller could run against a
+    # model that carries no store of its own.
 
     private
 

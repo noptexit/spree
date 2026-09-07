@@ -65,23 +65,28 @@ module Spree
 
         if price_list
           list_rows = rows.select { |row| row.price_list_id == price_list.id }
-          # The bottom rung, because this reading makes no purchase — the
-          # deeper rungs are reported as a count so the view can say "and
-          # three more from a case up" without pretending to know the size of
-          # an order nobody has placed.
-          explicit = list_rows.min_by { |row| row.min_quantity.to_i }
-          return build(explicit, 'explicit', break_count: list_rows.count { |row| row.min_quantity.to_i > 1 }) if explicit
+          break_count = list_rows.count { |row| row.min_quantity.to_i > 1 }
+          # The bottom rung only — this reading makes no purchase, so a deeper
+          # rung read as the single-unit price would name an amount the
+          # resolver does not charge at that quantity. A ladder starting above
+          # one unit therefore reads as base here, which is what a buyer of
+          # one actually pays.
+          explicit = list_rows.detect { |row| row.min_quantity.to_i == 1 }
+          return build(explicit, 'explicit', break_count: break_count) if explicit
 
           # Derived by the list itself, so the amount a merchant reads here is
-          # the one the pricing resolver charges — one formula, not two.
-          derived = price_list.automatic_pricing? ? price_list.derived_price_from(base, 1) : nil
+          # the one the pricing resolver charges — one formula, not two. A
+          # variant with a ladder is priced by the ladder alone, so the list's
+          # percentage is not reported for it either.
+          derived = price_list.automatic_pricing? && break_count.zero? ? price_list.derived_price_from(base, 1) : nil
           return build(derived, 'automatic', break_count: band_count) if derived
 
-          # A list whose percentage only starts at a quantity charges the base
-          # price for a single unit, and says so — with the bands counted, so
-          # the reading is "base now, and less from a case up" rather than a
-          # bare base price that hides the agreement.
-          return build(base, 'base', break_count: band_count) if base && band_count.positive?
+          # A list that prices this variant only from a quantity up charges
+          # the base price for a single unit, and says so — with the tiers
+          # counted, so the reading is "base now, less from a case up" rather
+          # than a bare base price that hides the agreement.
+          tiers_above = break_count.positive? ? break_count : band_count
+          return build(base, 'base', break_count: tiers_above) if base && tiers_above.positive?
         end
 
         base && build(base, 'base')

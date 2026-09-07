@@ -11,10 +11,12 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'rea
 import { useTranslation } from 'react-i18next'
 import { useCurrencyLocale } from '../../../hooks/use-currency-locale'
 import { useBulkUpsertPrices } from '../../../hooks/use-prices'
-import { MAXIMUM_QUANTITY_TIERS } from '../../../schemas/price-list'
 import { VariantTierDialog } from './variant-tier-dialog'
 
 const PAGE_SIZE = 50
+// The API caps a page at 100 rows, so the break sweep asks for exactly that
+// and pages until it has them all.
+const BREAK_PAGE_SIZE = 100
 
 interface PriceListRowFromServer {
   id: string
@@ -180,33 +182,51 @@ export function BulkPriceEditor({
     [data],
   )
 
-  // The rungs above the bottom one, for this page's variants only — one query
-  // rather than one per row, and none at all when this editor has no list to
-  // hold a ladder (docs/plans/6.0-volume-pricing.md).
-  const { data: breakData } = useQuery({
+  // The rungs above the bottom one, for this page's variants only — a few
+  // queries rather than one per row, and none at all when this editor has no
+  // list to hold a ladder (docs/plans/6.0-volume-pricing.md).
+  //
+  // Paged rather than asked for in one call: a page of fifty fully-laddered
+  // variants is five hundred rows and the API caps a page at a hundred, so a
+  // single request would silently truncate and under-report the badges.
+  const { data: breakRows } = useQuery({
     queryKey: useResourceKey('prices', {
       breaks: priceListId ?? null,
       currency,
       variants: pageVariantIds.join(','),
     }),
-    queryFn: () =>
-      adminClient.prices.list({
-        variant_id_in: pageVariantIds,
-        price_list_id_eq: priceListId,
-        currency_eq: currency,
-        min_quantity_gt: 1,
-        limit: pageVariantIds.length * MAXIMUM_QUANTITY_TIERS,
-      } as never),
+    queryFn: async () => {
+      const collected: PriceListRowFromServer[] = []
+      let breakPage = 1
+      let lastPage = 1
+
+      do {
+        const response = await adminClient.prices.list({
+          variant_id_in: pageVariantIds,
+          price_list_id_eq: priceListId,
+          currency_eq: currency,
+          min_quantity_gt: 1,
+          page: breakPage,
+          limit: BREAK_PAGE_SIZE,
+        } as never)
+
+        collected.push(...(response.data as unknown as PriceListRowFromServer[]))
+        lastPage = response.meta?.pages ?? 1
+        breakPage += 1
+      } while (breakPage <= lastPage)
+
+      return collected
+    },
     enabled: !!priceListId && pageVariantIds.length > 0,
   })
 
   const breakCounts = useMemo(() => {
     const counts = new Map<string, number>()
-    for (const row of (breakData?.data ?? []) as unknown as PriceListRowFromServer[]) {
+    for (const row of breakRows ?? []) {
       counts.set(row.variant_id, (counts.get(row.variant_id) ?? 0) + 1)
     }
     return counts
-  }, [breakData])
+  }, [breakRows])
 
   const baselineRows = useMemo<BaselineRow[]>(() => {
     if (!data) return []
@@ -427,9 +447,8 @@ export function BulkPriceEditor({
           tiers: priceListId
             ? t('admin.pages.products.price_lists.edit_prices.columns.tiers')
             : undefined,
-          tiersWithCount: t('admin.pages.products.price_lists.tiers.count_badge', {
-            count: '{count}' as never,
-          }),
+          tiersWithCount: (count: number) =>
+            t('admin.pages.products.price_lists.tiers.count_badge', { count }),
           tiersEmpty: t('admin.pages.products.price_lists.tiers.add_short'),
         }}
       />
