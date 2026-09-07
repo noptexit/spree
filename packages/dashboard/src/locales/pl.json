@@ -171,7 +171,8 @@
         "tier_from_one": "Od {{count}}",
         "tier_from_other": "Od {{count}}",
         "tier_preview": "Ile nalicza ta umowa",
-        "unpriced": "Brak ceny"
+        "unpriced": "Brak ceny",
+        "variant_default": "Domyślny"
       },
       "products": {
         "add_cta": "Dodaj produkty",

@@ -25,6 +25,22 @@ module Spree
 
             Spree.api.admin_catalog_price_serializer.new(price, params: params).to_h if price
           end
+
+          # Every variant with what this agreement charges for it. A product's
+          # variants can be priced differently — and carry different quantity
+          # ladders — so a single figure on the product row names one variant's
+          # deal and hides the rest (docs/plans/6.0-volume-pricing.md).
+          # `source:` rather than a plain association: the rows are resolved
+          # per request against the catalog's price list, which the serializer
+          # receives in params rather than the product carrying it.
+          many :catalog_variants,
+               resource: proc { Spree.api.admin_catalog_price_serializer },
+               if: proc { expand?('catalog_price') },
+               source: lambda { |params|
+                 resolver = params[:catalog_price_resolver]
+
+                 variants.filter_map { |variant| resolver&.call(variant) }
+               }
         end
       end
     end

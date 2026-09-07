@@ -107,16 +107,6 @@ module Spree
               },
               required: %w[name label required]
             },
-            CatalogPriceTier: {
-              type: :object,
-              description: 'One rung of a catalog\'s quantity ladder — from this quantity up, a buyer on the catalog pays this amount',
-              properties: {
-                min_quantity: { type: :number, description: 'The quantity this rung applies from', example: 24 },
-                amount: { type: :string, description: 'The unit price charged from that quantity', example: '31.99' },
-                display_amount: { type: :string, description: 'The same amount formatted for the store\'s currency', example: '$31.99' }
-              },
-              required: %w[min_quantity amount display_amount]
-            },
             CheckoutRequirement: {
               type: :object,
               properties: {
@@ -426,28 +416,8 @@ module Spree
             patch_promotion_action_schema(schemas)
             patch_price_rule_schema(schemas)
             patch_import_schema(schemas)
-            patch_catalog_price_schema(schemas)
             schemas
           end
-        end
-
-        # Same Array<{...}> issue as cart/fulfillment — patch
-        # CatalogPrice#tiers to reference the CatalogPriceTier component
-        # schema (docs/plans/6.0-volume-pricing.md).
-        def patch_catalog_price_schema(schemas)
-          catalog_price = schemas['CatalogPrice'] || schemas[:CatalogPrice]
-          return unless catalog_price
-
-          props = catalog_price[:properties]
-          return unless props
-
-          key = props.key?('tiers') ? 'tiers' : :tiers
-          return unless props[key]
-
-          props[key] = {
-            type: :array,
-            items: { '$ref' => '#/components/schemas/CatalogPriceTier' }
-          }
         end
 
         # Same Array<{...}> issue as cart/fulfillment — patch Import#schema_fields

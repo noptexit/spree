@@ -11653,27 +11653,6 @@ components:
       - name
       - label
       - required
-    CatalogPriceTier:
-      type: object
-      description: One rung of a catalog's quantity ladder — from this quantity up,
-        a buyer on the catalog pays this amount
-      properties:
-        min_quantity:
-          type: number
-          description: The quantity this rung applies from
-          example: 24
-        amount:
-          type: string
-          description: The unit price charged from that quantity
-          example: '31.99'
-        display_amount:
-          type: string
-          description: The same amount formatted for the store's currency
-          example: "$31.99"
-      required:
-      - min_quantity
-      - amount
-      - display_amount
     CheckoutRequirement:
       type: object
       properties:

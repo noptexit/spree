@@ -32,9 +32,10 @@ module Spree
               super.merge(catalog_price_resolver: catalog_price_resolver)
             end
 
-            # Preloaded off the same variant the serializer prices — the buy-box
-            # winner in this currency — so every row is answered from the batch
-            # rather than falling through to a query of its own.
+            # Preloaded with every variant the page renders — each row now
+            # prices its variants individually, so preloading only the buy-box
+            # winner would leave the rest falling through to a query apiece
+            # (docs/plans/6.0-volume-pricing.md).
             def catalog_price_resolver
               @catalog_price_resolver ||=
                 Spree::Catalogs::ResolvePrices.new(catalog: @catalog, currency: current_currency).
@@ -42,7 +43,14 @@ module Spree
             end
 
             def priced_variants
-              Array(@collection).filter_map { |product| product.featured_variant(currency: current_currency) }
+              Array(@collection).flat_map { |product| product.variants.to_a }
+            end
+
+            # Every row lists its variants and prices each of them, so the
+            # variants and their prices are loaded with the page rather than
+            # a query per product (docs/plans/6.0-volume-pricing.md).
+            def collection_includes
+              [{ variants: :prices }]
             end
 
             def scope

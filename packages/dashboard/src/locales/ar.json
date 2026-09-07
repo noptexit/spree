@@ -165,7 +165,8 @@
         "tier_from_one": "من {{count}}",
         "tier_from_other": "من {{count}}",
         "tier_preview": "ما تحتسبه هذه الاتفاقية",
-        "unpriced": "لا يوجد سعر"
+        "unpriced": "لا يوجد سعر",
+        "variant_default": "افتراضي"
       },
       "products": {
         "add_cta": "إضافة منتجات",

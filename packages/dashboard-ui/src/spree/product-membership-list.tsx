@@ -28,6 +28,19 @@ import { Undo2Icon, XIcon } from './icons'
 import { SearchInput } from './search-input'
 
 /** One product row in a membership list. */
+/**
+ * How many cells a sub-row must emit before and after the extra columns to
+ * line up with the product rows above it. Reported by the list rather than
+ * counted by the caller, since the leading cells depend on whether the list
+ * is curatable and reorderable.
+ */
+export interface SubRowLayout {
+  /** Cells before the product-name column (selection checkbox, drag handle). */
+  leadingCells: number
+  /** Cells after the extra columns (the row-action column). */
+  trailingCells: number
+}
+
 export interface ProductMembershipRow {
   id: string
   name?: string | null
@@ -86,6 +99,14 @@ export interface ProductMembershipListProps {
    * charge of what a row means to it; both must return the same number of
    * cells or the table misaligns.
    */
+  /**
+   * Rows rendered beneath a product's own, spanning the same columns — a
+   * catalog lists each variant's price this way, since one figure on the
+   * product row names a single variant's deal and hides the others
+   * (docs/plans/6.0-volume-pricing.md). Omitted by every other consumer, so
+   * their rows are unchanged.
+   */
+  renderSubRows?: (row: ProductMembershipRow, layout: SubRowLayout) => ReactNode
   extraColumns?: {
     headers: ReactNode
     renderCells: (row: ProductMembershipRow) => ReactNode
@@ -115,6 +136,7 @@ export function ProductMembershipList({
   reorderable = false,
   onReorder,
   renderTitle,
+  renderSubRows,
   extraColumns,
 }: ProductMembershipListProps) {
   const [query, setQuery] = useState('')
@@ -122,6 +144,7 @@ export function ProductMembershipList({
   // Local order mirrors the incoming rows so a drag re-renders instantly;
   // a resolved onReorder re-syncs through the next rows prop.
   const [order, setOrder] = useState<ProductMembershipRow[]>(rows)
+
   useEffect(() => {
     setOrder(rows)
   }, [rows])
@@ -189,6 +212,13 @@ export function ProductMembershipList({
 
   const curatable = !readOnly
 
+  // The leading cells are conditional, so the list states the shape rather
+  // than leaving each caller to re-derive it and drift.
+  const subRowLayout: SubRowLayout = {
+    leadingCells: (curatable ? 1 : 0) + (reorderable ? 1 : 0),
+    trailingCells: 1,
+  }
+
   if (loading) {
     return <p className="p-6 text-muted-foreground text-sm">{labels.loading}</p>
   }
@@ -250,6 +280,7 @@ export function ProductMembershipList({
                     labels={labels}
                     renderTitle={renderTitle}
                     extraCells={extraColumns?.renderCells(row)}
+                    subRows={renderSubRows?.(row, subRowLayout)}
                   />
                 ))}
               </TableBody>
@@ -275,6 +306,7 @@ function MembershipRow({
   labels,
   renderTitle,
   extraCells,
+  subRows,
 }: {
   row: ProductMembershipRow
   curatable: boolean
@@ -287,6 +319,7 @@ function MembershipRow({
   labels: ProductMembershipListLabels
   renderTitle?: (row: ProductMembershipRow) => ReactNode
   extraCells?: ReactNode
+  subRows?: ReactNode
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: row.id,
@@ -297,71 +330,76 @@ function MembershipRow({
   const added = row.pending === 'added'
 
   return (
-    <tr
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      // Mirror <TableRow> styling — a plain <tr> is required so dnd-kit's
-      // setNodeRef attaches (TableRow doesn't forward refs).
-      className={cn(
-        'group/row last:*:border-b-0 hover:bg-accent/60',
-        selected && 'bg-accent/60 hover:bg-accent',
-        isDragging && 'relative z-10 opacity-70',
-        removed && 'opacity-60',
-      )}
-    >
-      {curatable && (
+    <>
+      <tr
+        ref={setNodeRef}
+        style={{ transform: CSS.Transform.toString(transform), transition }}
+        // Mirror <TableRow> styling — a plain <tr> is required so dnd-kit's
+        // setNodeRef attaches (TableRow doesn't forward refs).
+        className={cn(
+          'group/row last:*:border-b-0 hover:bg-accent/60',
+          selected && 'bg-accent/60 hover:bg-accent',
+          isDragging && 'relative z-10 opacity-70',
+          removed && 'opacity-60',
+        )}
+      >
+        {curatable && (
+          <TableCell>
+            {!removed && (
+              <Checkbox
+                checked={selected}
+                onCheckedChange={onToggleSelected}
+                aria-label={labels.selectRow}
+              />
+            )}
+          </TableCell>
+        )}
+        {showDragColumn && (
+          <TableCell className="pr-0">
+            {reorderable && <DragHandle attributes={attributes} listeners={listeners} />}
+          </TableCell>
+        )}
         <TableCell>
-          {!removed && (
-            <Checkbox
-              checked={selected}
-              onCheckedChange={onToggleSelected}
-              aria-label={labels.selectRow}
-            />
-          )}
+          <span className={cn('flex items-center gap-3', removed && 'line-through')}>
+            <Thumbnail src={row.thumbnailUrl} size="sm" />
+            {renderTitle ? renderTitle(row) : <span className="truncate text-sm">{row.name}</span>}
+            {added && labels.pendingAddedBadge && (
+              <Badge variant="secondary">{labels.pendingAddedBadge}</Badge>
+            )}
+          </span>
         </TableCell>
-      )}
-      {showDragColumn && (
-        <TableCell className="pr-0">
-          {reorderable && <DragHandle attributes={attributes} listeners={listeners} />}
+        {extraCells}
+        <TableCell className="text-right">
+          {curatable &&
+            (removed
+              ? onRestore && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={onRestore}
+                    aria-label={labels.restore ?? labels.remove}
+                  >
+                    <Undo2Icon className="size-4" />
+                  </Button>
+                )
+              : onRemove && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={onRemove}
+                    aria-label={labels.remove}
+                  >
+                    <XIcon className="size-4" />
+                  </Button>
+                ))}
         </TableCell>
-      )}
-      <TableCell>
-        <span className={cn('flex items-center gap-3', removed && 'line-through')}>
-          <Thumbnail src={row.thumbnailUrl} size="sm" />
-          {renderTitle ? renderTitle(row) : <span className="truncate text-sm">{row.name}</span>}
-          {added && labels.pendingAddedBadge && (
-            <Badge variant="secondary">{labels.pendingAddedBadge}</Badge>
-          )}
-        </span>
-      </TableCell>
-      {extraCells}
-      <TableCell className="text-right">
-        {curatable &&
-          (removed
-            ? onRestore && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={onRestore}
-                  aria-label={labels.restore ?? labels.remove}
-                >
-                  <Undo2Icon className="size-4" />
-                </Button>
-              )
-            : onRemove && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={onRemove}
-                  aria-label={labels.remove}
-                >
-                  <XIcon className="size-4" />
-                </Button>
-              ))}
-      </TableCell>
-    </tr>
+      </tr>
+      {/* Sub-rows sit outside the sortable <tr> so dragging a product still
+        moves one row, and so a removed product's rows dim with it. */}
+      {!removed && subRows}
+    </>
   )
 }
 

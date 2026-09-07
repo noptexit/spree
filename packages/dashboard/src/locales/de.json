@@ -165,7 +165,8 @@
         "tier_from_one": "Ab {{count}}",
         "tier_from_other": "Ab {{count}}",
         "tier_preview": "Was diese Vereinbarung berechnet",
-        "unpriced": "Kein Preis"
+        "unpriced": "Kein Preis",
+        "variant_default": "Standard"
       },
       "products": {
         "add_cta": "Produkte hinzufügen",

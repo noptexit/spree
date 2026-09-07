@@ -1,5 +1,5 @@
 import type { CatalogPrice, CatalogProduct } from '@spree/admin-sdk'
-import type { ProductMembershipRow } from '@spree/dashboard-ui'
+import type { ProductMembershipRow, SubRowLayout } from '@spree/dashboard-ui'
 import {
   Badge,
   TableCell,
@@ -27,18 +27,13 @@ const AGREEMENT_SOURCES = ['explicit', 'automatic'] as const
  * and the struck-through row already says it is leaving.
  */
 export function catalogPriceColumns({
-  products,
   headers,
 }: {
-  /** The server rows this page rendered, which carry the resolved price. */
-  products: CatalogProduct[]
   headers: {
     price: string
     source: string
   }
 }) {
-  const byId = new Map(products.map((product) => [product.id, product.catalog_price]))
-
   return {
     headers: (
       <>
@@ -46,33 +41,18 @@ export function catalogPriceColumns({
         <TableHead className="w-28">{headers.source}</TableHead>
       </>
     ),
-    renderCells: (row: ProductMembershipRow) => {
-      const price = row.pending === 'added' ? undefined : byId.get(row.id)
-
-      return (
-        <>
-          <TableCell className="text-right tabular-nums">
-            {price ? (
-              <span className="inline-flex items-center justify-end gap-1.5">
-                {price.display_amount}
-                {/* What the agreement charges for one unit, with the tiers
-                    above it counted rather than hidden — a single figure on a
-                    laddered variant reads as the only price there is
-                    (docs/plans/6.0-volume-pricing.md). */}
-                {price.break_count > 0 && <TierBadge price={price} />}
-              </span>
-            ) : (
-              <span className="text-muted-foreground">
-                {row.pending === 'added'
-                  ? i18n.t('admin.catalogs.prices.after_save')
-                  : i18n.t('admin.catalogs.prices.unpriced')}
-              </span>
-            )}
-          </TableCell>
-          <TableCell>{price && <PriceSourceBadge source={price.source} />}</TableCell>
-        </>
-      )
-    },
+    // The product row carries no price: its variants can be priced
+    // differently and carry different ladders, so one figure here would name
+    // a single variant's deal and hide the rest
+    // (docs/plans/6.0-volume-pricing.md). The rows beneath say it per variant.
+    renderCells: (row: ProductMembershipRow) => (
+      <>
+        <TableCell className="text-right text-muted-foreground text-xs">
+          {row.pending === 'added' ? i18n.t('admin.catalogs.prices.after_save') : null}
+        </TableCell>
+        <TableCell />
+      </>
+    ),
   }
 }
 
@@ -164,4 +144,53 @@ function TierBadge({ price }: { price: CatalogPrice }) {
       </TooltipContent>
     </Tooltip>
   )
+}
+
+/**
+ * A product's variants as rows beneath it, each with what this agreement
+ * charges for it and the ladder behind that figure.
+ *
+ * Variants are where prices actually live — a product's can differ, and each
+ * carries its own quantity breaks — so the agreement is only readable when
+ * they are listed individually (docs/plans/6.0-volume-pricing.md).
+ *
+ * @param products the server rows for this page, which carry the resolved
+ *   per-variant prices
+ */
+export function catalogVariantRows({ products }: { products: CatalogProduct[] }) {
+  const byId = new Map(products.map((product) => [product.id, product.catalog_variants ?? []]))
+
+  return (row: ProductMembershipRow, { leadingCells, trailingCells }: SubRowLayout) => {
+    // A staged addition has no server row yet, so it has nothing to list.
+    const variants = row.pending === 'added' ? [] : (byId.get(row.id) ?? [])
+    if (variants.length === 0) return null
+
+    return variants.map((price) => (
+      <tr key={price.id} className="border-b text-sm last:border-b-0">
+        {/* One spanning cell rather than several empty ones: these are
+            spacers to line the row up, not columns of their own. */}
+        {leadingCells > 0 && <TableCell colSpan={leadingCells} />}
+        <TableCell className="text-muted-foreground">
+          <span className="flex items-center gap-2 pl-11">
+            <span className="truncate">
+              {price.label ?? i18n.t('admin.catalogs.prices.variant_default')}
+            </span>
+            {price.sku && (
+              <span className="truncate font-mono text-xs opacity-70">{price.sku}</span>
+            )}
+          </span>
+        </TableCell>
+        <TableCell className="text-right tabular-nums">
+          <span className="inline-flex items-center justify-end gap-1.5">
+            {price.display_amount}
+            {price.break_count > 0 && <TierBadge price={price} />}
+          </span>
+        </TableCell>
+        <TableCell>
+          <PriceSourceBadge source={price.source} />
+        </TableCell>
+        {trailingCells > 0 && <TableCell colSpan={trailingCells} />}
+      </tr>
+    ))
+  }
 }

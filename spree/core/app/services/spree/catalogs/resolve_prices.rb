@@ -72,24 +72,24 @@ module Spree
           # one unit therefore reads as base here, which is what a buyer of
           # one actually pays.
           explicit = list_rows.detect { |row| row.min_quantity.to_i == 1 }
-          return build(explicit, 'explicit', tiers: break_tiers(list_rows)) if explicit
+          return build(explicit, 'explicit', tiers: break_tiers(list_rows), variant: variant) if explicit
 
           # Derived by the list itself, so the amount a merchant reads here is
           # the one the pricing resolver charges — one formula, not two. A
           # variant with a ladder is priced by the ladder alone, so the list's
           # percentage is not reported for it either.
           derived = price_list.automatic_pricing? && break_count.zero? ? price_list.derived_price_from(base, 1) : nil
-          return build(derived, 'automatic', tiers: band_tiers(base)) if derived
+          return build(derived, 'automatic', tiers: band_tiers(base), variant: variant) if derived
 
           # A list that prices this variant only from a quantity up charges
           # the base price for a single unit, and says so — with the tiers
           # counted, so the reading is "base now, less from a case up" rather
           # than a bare base price that hides the agreement.
           tiers_above = break_count.positive? ? break_tiers(list_rows) : band_tiers(base)
-          return build(base, 'base', tiers: tiers_above) if base && tiers_above.any?
+          return build(base, 'base', tiers: tiers_above, variant: variant) if base && tiers_above.any?
         end
 
-        base && build(base, 'base')
+        base && build(base, 'base', variant: variant)
       end
 
       private
@@ -167,10 +167,10 @@ module Spree
         end
       end
 
-      def build(price, source, tiers: [])
+      def build(price, source, tiers: [], variant: nil)
         Spree::CatalogPrice.new(
           amount: price.amount, currency: price.currency, source: source,
-          break_count: tiers.size, tiers: tiers
+          break_count: tiers.size, tiers: tiers, variant: variant
         )
       end
     end
