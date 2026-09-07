@@ -236,10 +236,11 @@ module Spree
         !!complete
       end
 
-      def as_json(identify_lines: true)
-        identity = identify_lines ? { 'variant_id' => variant_id, 'sku' => sku, 'name' => name } : {}
-
-        identity.merge(
+      def as_json(*)
+        {
+          'variant_id' => variant_id,
+          'sku' => sku,
+          'name' => name,
           'units' => units,
           'cartons' => cartons,
           'pallets' => pallets,
@@ -249,7 +250,7 @@ module Spree
           'volume' => BigDecimal(volume.to_s).to_s('F'),
           'weight' => BigDecimal(weight.to_s).to_s('F'),
           'complete' => complete
-        )
+        }
       end
     end
   end

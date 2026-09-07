@@ -215,6 +215,13 @@ module Spree
           many :claims,
                resource: proc { Spree.api.admin_claim_serializer },
                if: proc { expand?('claims') }
+
+          # What the forwarder quoted against, frozen onto the rates this
+          # order shipped under. Back-office only: a buyer is told what their
+          # shipment costs, not how the warehouse packed it.
+          typelize freight_summary: [:FreightSummary, nullable: true]
+
+          one :freight_summary, resource: proc { Spree.api.admin_freight_summary_serializer }
         end
       end
     end

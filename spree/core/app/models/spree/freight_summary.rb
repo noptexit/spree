@@ -152,11 +152,8 @@ module Spree
 
     # The serialized form frozen onto a delivery rate at completion.
     #
-    # @param identify_lines [Boolean] whether each line names the variant it
-    #   came from. False on a storefront that withholds commercial detail —
-    #   the totals are logistics and stay, but a SKU is catalog identity.
     # @return [Hash]
-    def as_json(identify_lines: true)
+    def as_json(*)
       {
         'total_units' => total_units,
         'total_cartons' => total_cartons,
@@ -164,7 +161,7 @@ module Spree
         'total_volume' => decimal_string(total_volume),
         'total_weight' => decimal_string(total_weight),
         'complete' => complete?,
-        'lines' => lines.map { |line| line.as_json(identify_lines: identify_lines) }
+        'lines' => lines.map(&:as_json)
       }
     end
 
