@@ -162,6 +162,9 @@
         },
         "tier_count_one": "+{{count}} مستوى",
         "tier_count_other": "+{{count}} مستويات",
+        "tier_from_one": "من {{count}}",
+        "tier_from_other": "من {{count}}",
+        "tier_preview": "ما تحتسبه هذه الاتفاقية",
         "unpriced": "لا يوجد سعر"
       },
       "products": {

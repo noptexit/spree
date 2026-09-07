@@ -162,6 +162,9 @@
         },
         "tier_count_one": "+{{count}} Stufe",
         "tier_count_other": "+{{count}} Stufen",
+        "tier_from_one": "Ab {{count}}",
+        "tier_from_other": "Ab {{count}}",
+        "tier_preview": "Was diese Vereinbarung berechnet",
         "unpriced": "Kein Preis"
       },
       "products": {

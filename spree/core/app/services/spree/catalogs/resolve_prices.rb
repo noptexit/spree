@@ -72,21 +72,21 @@ module Spree
           # one unit therefore reads as base here, which is what a buyer of
           # one actually pays.
           explicit = list_rows.detect { |row| row.min_quantity.to_i == 1 }
-          return build(explicit, 'explicit', break_count: break_count) if explicit
+          return build(explicit, 'explicit', tiers: break_tiers(list_rows)) if explicit
 
           # Derived by the list itself, so the amount a merchant reads here is
           # the one the pricing resolver charges — one formula, not two. A
           # variant with a ladder is priced by the ladder alone, so the list's
           # percentage is not reported for it either.
           derived = price_list.automatic_pricing? && break_count.zero? ? price_list.derived_price_from(base, 1) : nil
-          return build(derived, 'automatic', break_count: band_count) if derived
+          return build(derived, 'automatic', tiers: band_tiers(base)) if derived
 
           # A list that prices this variant only from a quantity up charges
           # the base price for a single unit, and says so — with the tiers
           # counted, so the reading is "base now, less from a case up" rather
           # than a bare base price that hides the agreement.
-          tiers_above = break_count.positive? ? break_count : band_count
-          return build(base, 'base', break_count: tiers_above) if base && tiers_above.positive?
+          tiers_above = break_count.positive? ? break_tiers(list_rows) : band_tiers(base)
+          return build(base, 'base', tiers: tiers_above) if base && tiers_above.any?
         end
 
         base && build(base, 'base')
@@ -128,20 +128,49 @@ module Spree
           group_by(&:variant_id)
       end
 
-      # How many bands this list's percentage carries above quantity 1.
-      # Memoized and loaded rather than counted: this is asked once per product
-      # row, and `.size` on an unloaded association issues a COUNT every time
-      # without ever populating it.
-      # @return [Integer]
-      def band_count
-        return @band_count if defined?(@band_count)
-
-        @band_count = price_list ? price_list.price_adjustment_tiers.to_a.size : 0
+      # The variant's own rungs above its ordinary price, as the agreement
+      # reads them: each carries the amount it is charged at.
+      #
+      # @param list_rows [Array<Spree::Price>]
+      # @return [Array<Spree::CatalogPriceTier>]
+      def break_tiers(list_rows)
+        list_rows.
+          select { |row| row.min_quantity.to_i > 1 }.
+          sort_by { |row| row.min_quantity.to_i }.
+          map do |row|
+            Spree::CatalogPriceTier.new(
+              min_quantity: row.min_quantity, amount: row.amount, currency: currency
+            )
+          end
       end
 
-      def build(price, source, break_count: 0)
+      # The list's percentage bands, resolved against the base price — so the
+      # reading is an amount a buyer pays rather than a percentage a merchant
+      # has to apply in their head.
+      #
+      # Loaded rather than counted: this is asked once per product row, and
+      # `.size` on an unloaded association issues a COUNT every time without
+      # ever populating it.
+      #
+      # @param base [Spree::Price, nil]
+      # @return [Array<Spree::CatalogPriceTier>]
+      def band_tiers(base)
+        return [] if price_list.nil? || base.nil?
+
+        price_list.price_adjustment_tiers.to_a.sort_by(&:min_quantity).filter_map do |band|
+          derived = price_list.derived_price_from(base, band.min_quantity)
+          next if derived.nil?
+
+          Spree::CatalogPriceTier.new(
+            min_quantity: band.min_quantity, amount: derived.amount, currency: currency
+          )
+        end
+      end
+
+      def build(price, source, tiers: [])
         Spree::CatalogPrice.new(
-          amount: price.amount, currency: price.currency, source: source, break_count: break_count
+          amount: price.amount, currency: price.currency, source: source,
+          break_count: tiers.size, tiers: tiers
         )
       end
     end

@@ -233,6 +233,40 @@ RSpec.describe Spree::Catalogs::ResolvePrices do
         expect(Spree::PricingProvider::Internal.new.price_for(deep).amount).to eq(12)
       end
 
+      # The count alone would send a merchant to the price sheet to read three
+      # figures, so the ladder itself comes back with the price
+      # (docs/plans/6.0-volume-pricing.md).
+      it 'carries the fixed ladder as amounts, deepest last' do
+        list = create(:price_list, :active, store: store, catalog: catalog)
+        create(:price, variant: variant, price_list: list, amount: 60, currency: 'USD')
+        create(:price, variant: variant, price_list: list, amount: 50, currency: 'USD', min_quantity: 96)
+        create(:price, variant: variant, price_list: list, amount: 55, currency: 'USD', min_quantity: 24)
+
+        price = resolve(catalog.reload)
+
+        expect(price.tiers.map { |tier| [tier.min_quantity, tier.amount] }).to eq([[24, 55], [96, 50]])
+        expect(price.break_count).to eq(2)
+      end
+
+      # A band is a percentage, but a merchant reading an agreement wants the
+      # amount it comes to — so the reading resolves it against the base price.
+      it 'carries percentage bands as the amounts they resolve to' do
+        list = create(:price_list, :active, store: store, catalog: catalog,
+                                            price_adjustment_percentage: -10)
+        create(:price_adjustment_tier, price_list: list, min_quantity: 50, percentage: -20)
+
+        price = resolve(catalog.reload)
+
+        expect(price.amount).to eq(90)
+        expect(price.tiers.map { |tier| [tier.min_quantity, tier.amount] }).to eq([[50, 80]])
+      end
+
+      it 'carries no ladder for a variant priced at one figure' do
+        create(:price_list, :active, store: store, catalog: catalog)
+
+        expect(resolve(catalog.reload).tiers).to be_empty
+      end
+
       # A list that only discounts from a quantity up charges base for one.
       it 'reads base for a bands-only list, with the bands counted' do
         list = create(:price_list, :active, store: store, catalog: catalog)

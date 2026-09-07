@@ -16,7 +16,8 @@ module Spree
           _attributes.delete(:id)
 
           typelize amount: :string, display_amount: :string,
-                   currency: :string, source: :string, break_count: :number
+                   currency: :string, source: :string, break_count: :number,
+                   tiers: 'Array<{ min_quantity: number; amount: string; display_amount: string }>'
 
           # How many quantity tiers sit above this amount, so the view can say
           # "and three more from a case up" rather than showing one figure as
@@ -29,6 +30,19 @@ module Spree
 
           attribute :display_amount do |price|
             price.display_amount
+          end
+
+          # The ladder itself, so the agreement page can show what a buyer
+          # pays at each threshold without opening the price sheet
+          # (docs/plans/6.0-volume-pricing.md).
+          attribute :tiers do |price|
+            price.tiers.map do |tier|
+              {
+                min_quantity: tier.min_quantity,
+                amount: tier.amount.to_s,
+                display_amount: tier.display_amount
+              }
+            end
           end
         end
       end

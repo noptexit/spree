@@ -253,6 +253,11 @@ export function BulkPriceEditor({
   const [draftRungs, setDraftRungs] = useState<DraftRung[]>([])
   // Monotonic, so two rungs added in the same millisecond cannot collide.
   const nextDraftId = useRef(0)
+  // Which blank rows have already become drafts, by blank-row id. A blank row
+  // keeps its id once promoted — the next one gets a fresh id from the row
+  // builder — so this is what keeps a second keystroke from adding a
+  // second rung.
+  const promotedBlankRows = useRef(new Map<string, string>())
 
   const baselineRows = useMemo<BaselineRow[]>(() => {
     if (!data) return []
@@ -308,8 +313,12 @@ export function BulkPriceEditor({
       // Every variant ends with an empty rung waiting to be typed into, so
       // growing a ladder is filling in the next line rather than asking for
       // one first (docs/plans/6.0-volume-pricing.md).
+      //
+      // The id counts the drafts already added, so each new blank row is a
+      // distinct row rather than the promoted one wearing its old name.
+      const draftCount = draftRungs.filter((entry) => entry.variantId === row.variant_id).length
       out.push({
-        id: `blank:${row.variant_id}`,
+        id: `blank:${row.variant_id}:${draftCount}`,
         kind: 'tier',
         blank: true,
         variantId: row.variant_id,
@@ -356,8 +365,17 @@ export function BulkPriceEditor({
   const promoteBlankRow = useCallback((rowId: string): string | null => {
     if (!rowId.startsWith('blank:')) return null
 
-    const variantId = rowId.slice('blank:'.length)
+    // Idempotent per blank row: typing a quantity and then a price both reach
+    // here, and promoting twice would leave the merchant with two rungs where
+    // they entered one (docs/plans/6.0-volume-pricing.md).
+    const existing = promotedBlankRows.current.get(rowId)
+    if (existing) return existing
+
+    // `blank:<variantId>:<draftCount>` — the count keeps successive blank
+    // rows distinct, so it is dropped when reading the variant back out.
+    const variantId = rowId.slice('blank:'.length).replace(/:\d+$/, '')
     const draftId = `draft:${variantId}:${nextDraftId.current++}`
+    promotedBlankRows.current.set(rowId, draftId)
     setDraftRungs((prev) => [...prev, { id: draftId, variantId, minQuantity: '', amount: null }])
     return draftId
   }, [])

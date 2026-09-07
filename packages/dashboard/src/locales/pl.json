@@ -166,6 +166,11 @@
         "tier_count_many": "+{{count}} progów",
         "tier_count_one": "+{{count}} próg",
         "tier_count_other": "+{{count}} progów",
+        "tier_from_few": "Od {{count}}",
+        "tier_from_many": "Od {{count}}",
+        "tier_from_one": "Od {{count}}",
+        "tier_from_other": "Od {{count}}",
+        "tier_preview": "Ile nalicza ta umowa",
         "unpriced": "Brak ceny"
       },
       "products": {

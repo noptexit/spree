@@ -1,4 +1,4 @@
-import type { CatalogProduct } from '@spree/admin-sdk'
+import type { CatalogPrice, CatalogProduct } from '@spree/admin-sdk'
 import type { ProductMembershipRow } from '@spree/dashboard-ui'
 import {
   Badge,
@@ -59,11 +59,7 @@ export function catalogPriceColumns({
                     above it counted rather than hidden — a single figure on a
                     laddered variant reads as the only price there is
                     (docs/plans/6.0-volume-pricing.md). */}
-                {price.break_count > 0 && (
-                  <Badge variant="outline" className="font-normal">
-                    {i18n.t('admin.catalogs.prices.tier_count', { count: price.break_count })}
-                  </Badge>
-                )}
+                {price.break_count > 0 && <TierBadge price={price} />}
               </span>
             ) : (
               <span className="text-muted-foreground">
@@ -101,6 +97,71 @@ function PriceSourceBadge({ source }: { source: string }) {
         </button>
       </TooltipTrigger>
       <TooltipContent className="max-w-xs">{help}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+/**
+ * The count of a variant's quantity tiers, with the ladder itself on hover.
+ *
+ * The count alone asks a merchant to open the price sheet to read three
+ * figures, which is a click to answer a question the row could just answer
+ * (docs/plans/6.0-volume-pricing.md).
+ */
+function TierBadge({ price }: { price: CatalogPrice }) {
+  const label = i18n.t('admin.catalogs.prices.tier_count', { count: price.break_count })
+
+  // Nothing to preview — either the resolver could not price the rungs, or
+  // the response predates the field (a client holding a cached page across
+  // a deploy). Either way the badge stays a plain statement of fact rather
+  // than taking the row down with it.
+  const tiers = price.tiers ?? []
+  if (tiers.length === 0) {
+    return (
+      <Badge variant="outline" className="font-normal">
+        {label}
+      </Badge>
+    )
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button type="button" className="cursor-help rounded-sm">
+          <Badge variant="outline" className="font-normal">
+            {label}
+          </Badge>
+        </button>
+      </TooltipTrigger>
+      {/* TooltipContent is an inline-flex row capped at 200px, which lays a
+          heading beside a table and wraps both. A ladder is a block: stack it
+          and let it size to its figures. */}
+      <TooltipContent className="max-w-none flex-col items-stretch gap-0 px-2.5 py-2 text-left">
+        <p className="mb-1.5 whitespace-nowrap font-medium">
+          {i18n.t('admin.catalogs.prices.tier_preview')}
+        </p>
+        <table className="text-xs tabular-nums">
+          <tbody>
+            {/* The variant's own price is the ladder's first rung, so the
+                preview opens with it rather than starting at the first
+                break — otherwise the cheapest figure reads as the price. */}
+            <tr>
+              <td className="whitespace-nowrap pr-4 text-muted-foreground">
+                {i18n.t('admin.catalogs.prices.tier_from', { count: 1 })}
+              </td>
+              <td className="whitespace-nowrap text-right">{price.display_amount}</td>
+            </tr>
+            {tiers.map((tier) => (
+              <tr key={tier.min_quantity}>
+                <td className="whitespace-nowrap pr-4 text-muted-foreground">
+                  {i18n.t('admin.catalogs.prices.tier_from', { count: tier.min_quantity })}
+                </td>
+                <td className="whitespace-nowrap text-right">{tier.display_amount}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </TooltipContent>
     </Tooltip>
   )
 }

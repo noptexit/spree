@@ -162,6 +162,9 @@
         },
         "tier_count_one": "+{{count}} palier",
         "tier_count_other": "+{{count}} paliers",
+        "tier_from_one": "Dès {{count}}",
+        "tier_from_other": "Dès {{count}}",
+        "tier_preview": "Ce que facture cet accord",
         "unpriced": "Aucun prix"
       },
       "products": {

@@ -26,7 +26,18 @@ module Spree
     # figure whatever the order size (docs/plans/6.0-volume-pricing.md).
     attribute :break_count, :integer, default: 0
 
+    # The ladder itself, as {Spree::CatalogPriceTier} rows ordered by quantity
+    # — so a merchant reading the agreement sees what the buyer pays at each
+    # threshold without opening the price sheet
+    # (docs/plans/6.0-volume-pricing.md).
+    attr_writer :tiers
+
     validates :source, inclusion: { in: SOURCES }
+
+    # @return [Array<Spree::CatalogPriceTier>]
+    def tiers
+      @tiers ||= []
+    end
 
     # True when the catalog's own pricing decided this amount, rather than the
     # shop price showing through.
