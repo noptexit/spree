@@ -425,16 +425,16 @@ export function catalogPricingValues(
   // next Save would clear terms the merchant never saw
   // (docs/plans/6.0-volume-pricing.md).
   const bandsOnly = pricing_mode !== 'automatic' && bands.length > 0
+  // The shallowest band decides the whole ladder's direction: the form offers
+  // one increase/decrease control, and the magnitudes below are read through
+  // it.
+  const bandDirection = Number(bands[0]?.percentage) > 0 ? 'increase' : 'decrease'
 
   return {
     pricing_mode: bandsOnly ? 'automatic' : pricing_mode,
     // With no percentage of its own the direction comes from the bands, so
     // the magnitudes below read as the discounts they are.
-    adjustment_direction: bandsOnly
-      ? Number(bands[0]?.percentage) > 0
-        ? 'increase'
-        : 'decrease'
-      : adjustment_direction,
+    adjustment_direction: bandsOnly ? bandDirection : adjustment_direction,
     adjustment_magnitude,
     adjust_compare_at: priceList.adjust_compare_at ?? false,
     minimum_quantity: minimumQuantityOf(priceList.price_rules),

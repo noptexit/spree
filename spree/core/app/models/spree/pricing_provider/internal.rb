@@ -124,72 +124,55 @@ module Spree
         # @param price_list [Spree::PriceList]
         # @return [Spree::Price, nil]
         def find_price_for_list(price_list)
-          explicit = explicit_price_for_list(price_list)
+          rows = rows_for_list(price_list)
+
+          explicit = rows.select { |row| row.min_quantity <= line_quantity }.max_by(&:min_quantity)
           return explicit if explicit
           return nil unless price_list.automatic_pricing?
-          return nil if variant_has_breaks_on?(price_list)
+          return nil if rows.any?(&:quantity_break?)
 
           derived_price_for_list(price_list)
         end
 
-        # Whether this variant's rows on this list form a ladder. Asked only
-        # when no rung matched, so it costs a query on a list that prices the
-        # variant by percentage — which is the common case and answers false
-        # from the loaded association whenever the caller preloaded prices.
+        # This variant's chargeable rows on one list in this currency — the
+        # rungs of its ladder, which is a single row for a variant with no
+        # breaks (docs/plans/6.0-volume-pricing.md).
+        #
+        # Read once per list and memoized, so the two questions asked of it —
+        # which rung this line reaches, and whether a ladder exists at all —
+        # cost one lookup rather than two and cannot answer inconsistently.
+        #
+        # Zero is a valid override (free for this list); only nil placeholder
+        # rows (materialized by PriceList#add_products) are skipped, so a
+        # placeholder on an adjustment list falls through to the derived amount
+        # rather than blocking it. The skip is per row, so a placeholder at one
+        # rung does not hide a real amount at a lower one.
         #
         # @param price_list [Spree::PriceList]
-        # @return [Boolean]
-        def variant_has_breaks_on?(price_list)
-          currency = context.currency&.upcase
-
-          if prices.loaded?
-            prices.any? do |p|
-              p.currency == currency && p.price_list_id == price_list.id && !p.amount.nil? && p.min_quantity.to_i > 1
+        # @return [Array<Spree::Price>]
+        def rows_for_list(price_list)
+          @rows_for_list ||= {}
+          @rows_for_list[price_list.id] ||=
+            if prices.loaded?
+              prices.select do |row|
+                row.currency == currency && row.price_list_id == price_list.id && !row.amount.nil?
+              end
+            else
+              context.variant.prices.
+                with_currency(currency).
+                where(price_list_id: price_list.id).
+                where.not(amount: nil).to_a
             end
-          else
-            context.variant.prices
-                   .with_currency(currency)
-                   .where(price_list_id: price_list.id)
-                   .where.not(amount: nil)
-                   .breaks
-                   .exists?
-          end
         end
 
-        # An amount someone typed for this variant on this list, at the
-        # deepest quantity break the line reaches.
+        # The context's currency, upcased like every lookup that compares
+        # against it.
         #
-        # A list may hold several rows for one variant and currency — a
-        # ladder — so this picks the highest `min_quantity` at or below the
-        # line's size. With no breaks the ladder is one quantity-1 row and
-        # this answers exactly what it always did
-        # (docs/plans/6.0-volume-pricing.md).
-        #
-        # @param price_list [Spree::PriceList]
-        # @return [Spree::Price, nil]
-        def explicit_price_for_list(price_list)
-          currency = context.currency&.upcase
+        # @return [String, nil]
+        def currency
+          return @currency if defined?(@currency)
 
-          # Zero is a valid override (free for this list); only nil placeholder
-          # rows (materialized by PriceList#add_products) are skipped, so a
-          # placeholder on an adjustment list falls through to the derived
-          # amount rather than blocking it. A placeholder at one rung does not
-          # hide a real amount at a lower one — the skip is per row.
-          if prices.loaded?
-            prices.select do |p|
-              p.currency == currency &&
-                p.price_list_id == price_list.id &&
-                !p.amount.nil? &&
-                p.min_quantity.to_i <= line_quantity
-            end.max_by { |p| p.min_quantity.to_i }
-          else
-            context.variant.prices
-                   .with_currency(currency)
-                   .where(price_list_id: price_list.id)
-                   .where.not(amount: nil)
-                   .for_quantity(line_quantity)
-                   .first
-          end
+          @currency = context.currency&.upcase
         end
 
         # The size of the line being priced. A context that carries no
@@ -230,8 +213,6 @@ module Spree
         # @return [Spree::Price, nil]
         def base_price
           return @base_price if defined?(@base_price)
-
-          currency = context.currency&.upcase
 
           @base_price = if prices.loaded?
                           prices.detect do |p|

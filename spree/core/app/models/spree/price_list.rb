@@ -142,6 +142,9 @@ module Spree
         .with_status(:active, :scheduled)
         .current(timezone)
         .by_position
+        # Every matched list is asked whether it prices automatically, which
+        # reads its bands — without this the walk pays a query per list.
+        .preload(:price_adjustment_tiers)
     end
 
     def self.match_policies
@@ -249,7 +252,9 @@ module Spree
     def derived_price_from(base, quantity = nil)
       return if base.nil? || base.amount.nil?
 
-      factor = adjustment_factor(quantity)
+      band = band_for(quantity)
+      percentage = band ? band.percentage : price_adjustment_percentage
+      factor = percentage && 1 + (percentage / 100)
       # A bands-only list below its first band adjusts nothing, so it prices
       # this line no more than a list holding no row for the variant does —
       # the walk moves on rather than stamping the base price with this
@@ -266,7 +271,7 @@ module Spree
         currency: base.currency,
         amount: Spree::Money::Rounding.to_currency(base.amount * factor, base.currency),
         compare_at_amount: compare_at,
-        min_quantity: band_for(quantity)&.min_quantity || 1,
+        min_quantity: band&.min_quantity || 1,
         price_list_id: id
       )
     end

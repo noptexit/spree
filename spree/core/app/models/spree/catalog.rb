@@ -168,7 +168,7 @@ module Spree
       # this the walk is one query per catalog again, plus one per list.
       if catalogs.any?
         ActiveRecord::Associations::Preloader.new(
-          records: catalogs, associations: { price_list: :price_rules }
+          records: catalogs, associations: { price_list: [:price_rules, :price_adjustment_tiers] }
         ).call
       end
       catalogs

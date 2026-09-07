@@ -35,8 +35,6 @@ module Spree
     validate :tiers_within_cap
 
     scope :by_quantity, -> { order(min_quantity: :asc) }
-    # Bands a line of this size qualifies for, deepest first.
-    scope :for_quantity, ->(quantity) { where(min_quantity: ..quantity.to_i).order(min_quantity: :desc) }
 
     # No ransack allowlist: a band is reached only through the list that owns
     # it, exactly like a PriceRule, and there is no endpoint that filters

@@ -137,23 +137,30 @@ module Spree
       # @param rows [Array<Hash>] the rows carrying an amount
       # @return [Array<Hash>] `[{ variant_id:, currency:, price_list_id: }, ...]`
       def ladders_over_cap(rows)
-        touched = rows.each_with_object(Hash.new { |hash, key| hash[key] = Set.new }) do |row, ladders|
-          next if row[:price_list_id].blank?
-          next if quantity_of(row) == 1
-
-          ladders[[row[:variant_id].to_s, row[:currency], row[:price_list_id].to_s]] << quantity_of(row)
-        end
+        touched = rows.
+                  reject { |row| row[:price_list_id].blank? || quantity_of(row) == 1 }.
+                  group_by { |row| [row[:variant_id].to_s, row[:currency], row[:price_list_id].to_s] }.
+                  transform_values { |group| group.map { |row| quantity_of(row) }.to_set }
         return [] if touched.empty?
 
-        touched.filter_map do |(variant_id, currency, price_list_id), incoming|
-          stored = Spree::Price.
-                   where(variant_id: variant_id, currency: currency, price_list_id: price_list_id).
-                   breaks.
-                   pluck(:min_quantity)
+        # One query for every ladder in the batch rather than one each: an
+        # import writing a ladder across two hundred variants would otherwise
+        # issue two hundred round trips inside the request. Cross-pairs the
+        # `IN` clauses pull in are dropped by the lookup below, the same way
+        # #sweep handles them.
+        stored = Spree::Price.
+                 where(variant_id: touched.keys.map { |key| key[0] },
+                       currency: touched.keys.map { |key| key[1] },
+                       price_list_id: touched.keys.map { |key| key[2] }).
+                 breaks.
+                 pluck(:variant_id, :currency, :price_list_id, :min_quantity).
+                 group_by { |variant_id, currency, price_list_id, _| [variant_id.to_s, currency, price_list_id.to_s] }
 
-          next if (stored.to_set | incoming).size <= Spree::Price::MAXIMUM_BREAKS_PER_VARIANT
+        touched.filter_map do |key, incoming|
+          rungs = stored.fetch(key, []).map(&:last).to_set | incoming
+          next if rungs.size <= Spree::Price::MAXIMUM_BREAKS_PER_VARIANT
 
-          { variant_id: variant_id, currency: currency, price_list_id: price_list_id }
+          { variant_id: key[0], currency: key[1], price_list_id: key[2] }
         end
       end
 

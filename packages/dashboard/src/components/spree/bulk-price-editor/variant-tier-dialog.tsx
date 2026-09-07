@@ -200,11 +200,7 @@ export function VariantTierDialog({
               }
               onChange={(id, field, next) =>
                 setDraft((prev) =>
-                  prev.map((rung) =>
-                    rung.id === id
-                      ? { ...rung, [field === 'minQuantity' ? 'minQuantity' : 'value']: next }
-                      : rung,
-                  ),
+                  prev.map((rung) => (rung.id === id ? { ...rung, [field]: next } : rung)),
                 )
               }
               onAdd={() => {

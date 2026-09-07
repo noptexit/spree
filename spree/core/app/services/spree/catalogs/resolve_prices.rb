@@ -129,9 +129,14 @@ module Spree
       end
 
       # How many bands this list's percentage carries above quantity 1.
+      # Memoized and loaded rather than counted: this is asked once per product
+      # row, and `.size` on an unloaded association issues a COUNT every time
+      # without ever populating it.
       # @return [Integer]
       def band_count
-        price_list ? price_list.price_adjustment_tiers.size : 0
+        return @band_count if defined?(@band_count)
+
+        @band_count = price_list ? price_list.price_adjustment_tiers.to_a.size : 0
       end
 
       def build(price, source, break_count: 0)

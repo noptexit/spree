@@ -61,9 +61,7 @@ module Spree
     scope :non_zero, -> { where.not(amount: [nil, 0]) }
     scope :discounted, -> { where('compare_at_amount > amount') }
     scope :base_prices, -> { where(price_list_id: nil) }
-    # Rows a line of this size may be charged at, deepest break first — the
-    # resolver takes the first.
-    scope :for_quantity, ->(quantity) { where(min_quantity: ..(quantity.to_i.positive? ? quantity.to_i : 1)).order(min_quantity: :desc) }
+    # A variant's rungs above its ordinary price on a list.
     scope :breaks, -> { where.not(min_quantity: 1) }
     scope :for_price_list, ->(price_list) { where(price_list_id: price_list) }
     scope :for_products, lambda { |products, currency = nil|

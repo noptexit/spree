@@ -70,7 +70,10 @@ module Spree
           end
 
           def collection_includes
-            [:catalog_products, :price_list, :order_minimums]
+            # The serializer reads each catalog's pricing strategy, which asks
+            # its list whether it carries bands — preloaded so an index does
+            # not pay a query per row.
+            [:catalog_products, :order_minimums, { price_list: :price_adjustment_tiers }]
           end
 
           def create_workflow

@@ -55,13 +55,18 @@ module Spree
             result = Spree::Prices::BulkUpsert.call(rows: rows)
             # The cap lives in the service, since every write path reaches it
             # and none of them run model validations
-            # (docs/plans/6.0-volume-pricing.md).
-            unless result.success?
+            # (docs/plans/6.0-volume-pricing.md). Guarded on the failure
+            # actually carrying `over_cap`, so a failure mode the service grows
+            # later is not reported under this one's name.
+            if (over_cap = result.error&.value.try(:[], :over_cap))
               return render_error(
                 code: 'too_many_breaks',
-                message: "A variant can carry at most #{Spree::Price::MAXIMUM_BREAKS_PER_VARIANT} quantity breaks on one price list.",
+                message: Spree.t(
+                  'activerecord.errors.models.spree/price.attributes.min_quantity.too_many_breaks',
+                  count: Spree::Price::MAXIMUM_BREAKS_PER_VARIANT
+                ).upcase_first,
                 status: :unprocessable_content,
-                details: { ladders: result.error.value[:over_cap] }
+                details: { ladders: over_cap }
               )
             end
 

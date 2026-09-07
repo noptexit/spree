@@ -114,6 +114,13 @@ module Spree
             super.ordered
           end
 
+          # The serializer always renders a list's bands — the pricing card
+          # cannot show a percentage without them — so the index preloads them
+          # rather than paying a query per row.
+          def collection_includes
+            [:price_adjustment_tiers]
+          end
+
           def permitted_params
             attrs = normalize_params(
               params.permit(
