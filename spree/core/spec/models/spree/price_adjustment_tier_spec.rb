@@ -46,6 +46,29 @@ describe Spree::PriceAdjustmentTier, type: :model do
       expect(build(:price_adjustment_tier, price_list: price_list, min_quantity: 10, percentage: 0)).not_to be_valid
     end
 
+    # Replacing a full ladder marks the old bands for destruction and builds
+    # the new ones, so a cap counting the database would see both halves.
+    it 'lets a full ladder be replaced with one the same size' do
+      (2..(described_class::MAXIMUM_TIERS_PER_LIST + 1)).each do |quantity|
+        create(:price_adjustment_tier, price_list: price_list, min_quantity: quantity)
+      end
+
+      replacement = (100..(99 + described_class::MAXIMUM_TIERS_PER_LIST)).map do |quantity|
+        { min_quantity: quantity, percentage: '-7' }
+      end
+
+      expect(price_list.update(price_adjustment_tiers: replacement)).to be(true)
+      expect(price_list.reload.price_adjustment_tiers.count).to eq(described_class::MAXIMUM_TIERS_PER_LIST)
+    end
+
+    it 'still refuses a replacement one past the cap' do
+      replacement = (100..(100 + described_class::MAXIMUM_TIERS_PER_LIST)).map do |quantity|
+        { min_quantity: quantity, percentage: '-7' }
+      end
+
+      expect(price_list.update(price_adjustment_tiers: replacement)).to be(false)
+    end
+
     it 'refuses a ladder past the cap' do
       (2..(described_class::MAXIMUM_TIERS_PER_LIST + 1)).each do |quantity|
         create(:price_adjustment_tier, price_list: price_list, min_quantity: quantity)

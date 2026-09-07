@@ -47,11 +47,15 @@ module Spree
     # answer to a question already answered — refused by the numericality
     # bound above rather than silently shadowing the column.
     def tiers_within_cap
-      return if price_list_id.blank?
+      return if price_list.nil?
 
-      siblings = self.class.where(price_list_id: price_list_id)
-      siblings = siblings.where.not(id: id) if persisted?
-      return if siblings.count < MAXIMUM_TIERS_PER_LIST
+      # Counted over the ladder the save will leave behind, not the rows
+      # standing now: replacing a full ladder marks the old bands for
+      # destruction and builds the new ones, so counting the database would
+      # see both halves and refuse a swap that ends the size it began
+      # (docs/plans/6.0-volume-pricing.md).
+      siblings = price_list.price_adjustment_tiers.reject { |tier| tier.marked_for_destruction? || tier == self }
+      return if siblings.size < MAXIMUM_TIERS_PER_LIST
 
       errors.add(:base, :too_many_tiers, count: MAXIMUM_TIERS_PER_LIST)
     end
