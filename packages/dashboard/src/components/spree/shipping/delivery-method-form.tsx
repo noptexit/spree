@@ -30,6 +30,7 @@ import {
   Field,
   FieldError,
   FieldLabel,
+  FormSection,
   Input,
   InputGroup,
   InputGroupAddon,
@@ -127,35 +128,6 @@ function useSelectedFulfillmentProvider(form: UseFormReturn<DeliveryMethodFormVa
  * "Providers" above two selects both named "…provider" is a label for a label.
  * A title is for a block whose fields do not announce themselves.
  */
-function FormSection({
-  title,
-  description,
-  action,
-  children,
-}: {
-  title?: string
-  description?: string
-  action?: React.ReactNode
-  children: React.ReactNode
-}) {
-  const heading = title || description || action
-
-  return (
-    <section className="flex flex-col gap-4 border-t pt-6 first:border-t-0 first:pt-0">
-      {heading && (
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex flex-col gap-0.5">
-            {title && <h3 className="font-medium text-sm">{title}</h3>}
-            {description && <p className="text-muted-foreground text-xs">{description}</p>}
-          </div>
-          {action}
-        </div>
-      )}
-      {children}
-    </section>
-  )
-}
-
 /**
  * Every section of the delivery method form, in the order a merchant answers
  * them: who fulfills and prices it (which decides what the rest even asks),
@@ -703,7 +675,13 @@ function CarrierServicesCard({ form }: { form: UseFormReturn<DeliveryMethodFormV
     if (rows.length > 0) setScope('selected')
   }, [rows.length])
 
+  // A provider that names no services has nothing to narrow. Freight is the
+  // case: a forwarder booking has no service list, and its tiers are separate
+  // delivery methods with volume rules. Offering the picker anyway would let
+  // a merchant choose "specific services" with none available, which filters
+  // every quote out and silently disables the method.
   if (!carrierPriced) return null
+  if (catalog.length === 0 && !catalogError && rows.length === 0) return null
 
   const rowIndex = (entry: DeliveryRateProviderCatalogEntry) =>
     rows.findIndex((row) => row.carrier === entry.carrier && row.service === entry.service)
