@@ -1,5 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { PriceList, PriceRule, ResourceTypeDefinition } from '@spree/admin-sdk'
+import type {
+  PriceList,
+  PriceListProduct,
+  PriceRule,
+  ResourceTypeDefinition,
+} from '@spree/admin-sdk'
 import {
   adminClient,
   Can,
@@ -28,6 +33,7 @@ import { Controller, type UseFormReturn, useFieldArray, useForm } from 'react-ho
 import { useTranslation } from 'react-i18next'
 import { spreeJsonLinkResolver } from '../../../lib/json-link-resolver'
 import { BulkPriceEditorDialog } from '../bulk-price-editor/bulk-price-editor-dialog'
+import { catalogPriceColumns, catalogVariantRows } from '../catalog-price-columns'
 import { DeferredProductMembershipCard } from '../deferred-product-membership-card'
 import { PriceListCsvButtons } from '../price-list-csv-buttons'
 import {
@@ -97,6 +103,9 @@ import { type PriceRuleEditorContext, ruleFormSlot } from './types'
 // =============================================================================
 // Public API
 // =============================================================================
+
+/** The price columns' copy for this page: "this list" where the catalog says "this catalog". */
+const PRICE_LIST_PRICES_NAMESPACE = 'admin.pages.products.price_lists.prices'
 
 interface PriceListFormProps {
   mode: 'create' | 'edit'
@@ -296,6 +305,25 @@ export function PriceListForm({
                           count: priceList.prices_count ?? 0,
                         })
                       : t('admin.pages.products.price_lists.products_help')
+                  }
+                  // Each variant priced on its own row with its ladder — the
+                  // catalog's reading, on the page where the ladder is edited
+                  // (docs/plans/6.0-volume-pricing.md).
+                  renderSubRows={(products) =>
+                    catalogVariantRows<PriceListProduct>({
+                      products,
+                      variantsOf: (product) => product.price_list_variants,
+                      namespace: PRICE_LIST_PRICES_NAMESPACE,
+                    })
+                  }
+                  extraColumns={() =>
+                    catalogPriceColumns({
+                      headers: {
+                        price: t(`${PRICE_LIST_PRICES_NAMESPACE}.column_price`),
+                        source: t(`${PRICE_LIST_PRICES_NAMESPACE}.column_source`),
+                      },
+                      namespace: PRICE_LIST_PRICES_NAMESPACE,
+                    })
                   }
                 />
               )}

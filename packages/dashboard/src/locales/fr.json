@@ -3387,6 +3387,17 @@
             "select_row": "Sélectionner le produit",
             "title": "Produits"
           },
+          "prices": {
+            "column_price": "Prix",
+            "column_source": "Source",
+            "source_help": {
+              "explicit": "Un montant saisi sur cette liste de prix.",
+              "automatic": "Le prix boutique avec le pourcentage de cette liste appliqué.",
+              "base": "Le prix boutique normal. Cette liste ne fixe pas de prix pour ce produit."
+            },
+            "tier_fixed_note": "Un ajustement en pourcentage ne s'applique pas ici. Ces paliers fixent le prix.",
+            "tier_preview": "Ce que cette liste facture"
+          },
           "products_help": "Choisissez les produits auxquels cette liste s'applique. Des prix provisoires sont créés à l'enregistrement — renseignez-les via « Modifier les prix ».",
           "products_help_with_prices_one": "Choisissez les produits auxquels cette liste s'applique. {{count}} prix est configuré — utilisez « Modifier les prix » pour le mettre à jour.",
           "products_help_with_prices_other": "Choisissez les produits auxquels cette liste s'applique. {{count}} prix sont configurés — utilisez « Modifier les prix » pour les mettre à jour.",

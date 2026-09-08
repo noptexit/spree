@@ -3387,6 +3387,17 @@
             "select_row": "Produkt auswählen",
             "title": "Produkte"
           },
+          "prices": {
+            "column_price": "Preis",
+            "column_source": "Quelle",
+            "source_help": {
+              "explicit": "Ein auf dieser Preisliste eingetragener Betrag.",
+              "automatic": "Der Shop-Preis mit dem Prozentsatz dieser Preisliste.",
+              "base": "Der normale Shop-Preis. Diese Liste bepreist dieses Produkt nicht."
+            },
+            "tier_fixed_note": "Eine prozentuale Anpassung gilt hier nicht. Diese Staffeln legen den Preis fest.",
+            "tier_preview": "Was diese Liste berechnet"
+          },
           "products_help": "Wählen Sie die Produkte, für die diese Liste gilt. Platzhalterpreise werden beim Speichern angelegt — über „Preise bearbeiten\" ausfüllen.",
           "products_help_with_prices_one": "Wählen Sie die Produkte, für die diese Liste gilt. {{count}} Preis ist hinterlegt — über „Preise bearbeiten\" anpassen.",
           "products_help_with_prices_other": "Wählen Sie die Produkte, für die diese Liste gilt. {{count}} Preise sind hinterlegt — über „Preise bearbeiten\" anpassen.",

@@ -3379,6 +3379,17 @@
             "select_row": "选择产品",
             "title": "产品"
           },
+          "prices": {
+            "column_price": "价格",
+            "column_source": "来源",
+            "source_help": {
+              "explicit": "在此价目表上输入的金额。",
+              "automatic": "应用此价目表百分比后的商店价格。",
+              "base": "正常的商店价格。此价目表未为该产品定价。"
+            },
+            "tier_fixed_note": "百分比调整不适用于此处。这些阶梯固定了价格。",
+            "tier_preview": "此价目表的收费"
+          },
           "products_help": "选择此价格表适用的产品。保存时会创建占位价格 — 使用“编辑价格”填写。",
           "products_help_with_prices_one": "选择此价格表适用的产品。已配置 {{count}} 个价格 — 使用“编辑价格”进行更新。",
           "products_help_with_prices_other": "选择此价格表适用的产品。已配置 {{count}} 个价格 — 使用“编辑价格”进行更新。",

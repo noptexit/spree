@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { Catalog } from '@spree/admin-sdk'
+import type { Catalog, CatalogProduct } from '@spree/admin-sdk'
 import type { PanelImport } from '@spree/dashboard-core'
 import {
   adminClient,
@@ -329,7 +329,12 @@ function CatalogBody({ catalog }: { catalog: Catalog }) {
                 // Each variant priced on its own row: a product's variants can
                 // be priced differently and carry different ladders
                 // (docs/plans/6.0-volume-pricing.md).
-                renderSubRows={(products) => catalogVariantRows({ products })}
+                renderSubRows={(products) =>
+                  catalogVariantRows<CatalogProduct>({
+                    products,
+                    variantsOf: (product) => product.catalog_variants,
+                  })
+                }
                 extraColumns={() =>
                   mergeExtraColumns(
                     catalogPriceColumns({
