@@ -695,6 +695,10 @@ module Spree
         Spree::Events.reset!
         Spree::Events.activate!
 
+        # Same stale-class problem as the subscribers above, for the provider
+        # registries the admin catalogs iterate.
+        Spree.refresh_provider_registries!
+
         # Re-attach event log subscriber if enabled
         if Spree::Config.events_log_enabled
           Spree::EventLogSubscriber.attach_to_notifications
