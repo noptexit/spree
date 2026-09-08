@@ -90,14 +90,20 @@ NEVER kill/shut off dev serves already running unless they are broken (eg. migra
 - DON'T comment code removal, just delete it
 - DON'T comment obvious and native to Rails framework methods, associations, validations
 - DON'T comment on shapes, serializers, types
-- Commit message body: max 3-4 sentences, DON'T include implementation detail, focus on the "what" and "why", not the "how"
-- If n-commits are needed for a single logical change, use `git commit --fixup` for the follow-ups and `git rebase -i --autosquash` to combine into a single commit before merging
 - Documentation also needs to follow the same principles — focus on the "what" and "why", not the "how". Don't include implementation details in docs. Docs should explain the feature, its purpose, and how to use it, but not how it's implemented internally.
-- NEVER commit anything to main branch, always use feature/fix/chore branches for development
 - ALWAYS use plain english language when communicating with the human, NEVER use technical jargon, be precise and clear, avoid abbreviations and acronyms, and use proper grammar and punctuation. Avoid using slang or informal language. Use simple and concise sentences to convey your message effectively. Avoid using complex sentence structures or convoluted phrasing that may confuse the reader. Use active voice instead of passive voice whenever possible. Avoid using overly technical terms or industry-specific jargon that may not be familiar to the reader. Use examples or analogies to explain complex concepts in a way that is easy to understand. Avoid using vague or ambiguous language that may lead to misinterpretation. Use headings, bullet points, and numbered lists to organize information and make it easier to read. Avoid using long paragraphs or blocks of text that may overwhelm the reader. Use visuals such as diagrams, charts, or screenshots to supplement written explanations when appropriate. Avoid using visuals that are unclear or difficult to interpret.
 - DRY - Don't Repeat Yourself - before adding a new feature or functionality, check if it already exists in the codebase. If it does, reuse it instead of duplicating code. This helps to keep the codebase clean and maintainable, our goal is to minimize the number of lines of code, not to expand it without control
 - Be Paranoid - always assume that the code you are writing will be used in unexpected ways, and that users may try to break it. Security is another important aspect of development, and we should always be mindful of potential vulnerabilities and attack vectors. Always validate user input, sanitize data, and follow best practices for secure coding. Use tools like static analysis, code reviews, and penetration testing to identify and fix security issues before they become a problem. Always keep security in mind when designing new features or making changes to existing code.
 - Seller Panel and Admin Dashboard - dashboard is the reference, when adding features to Seller panel extract code to re-usable components in dashboard, move it to dashboard-ui/dashboard-core, import it in Seller Panel
+
+
+## Git Policy
+
+- Commit message body: max 3-4 sentences, DON'T include implementation detail, focus on the "what" and "why", not the "how"
+- Commits fixing bugs should start with "Fix" prefix, branch name should start with "fix/"
+- Use plain phrases like "Added/Removed/Fixed/Changed" in commit messages/titles 
+- If n-commits are needed for a single logical change, use `git commit --fixup` for the follow-ups and `git rebase -i --autosquash` to combine into a single commit before merging
+- NEVER commit anything to main branch, always use feat/fix/chore branches for development
 - Pull Request descriptions are public, never disclose any credentials, PII, sensitive data or local dev environment URLs
 - Pull Request descriptions should follow same guidelines as git commits - short, cohesive and short, use bullets to list changes / new features if it's a big PR
 
