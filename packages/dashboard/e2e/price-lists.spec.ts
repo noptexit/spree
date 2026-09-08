@@ -360,6 +360,20 @@ test.describe('price lists', () => {
       '25.25',
       { timeout: 15_000 },
     )
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /^close$/i })
+      .click()
+
+    // The products card reads the same ladder: the variant row shows the
+    // list's amount, its tier count, and the ladder with the fixed-tiers
+    // note on hover — the catalog's reading, on the list's own page.
+    await expect(page.getByText('$30.00')).toBeVisible({ timeout: 15_000 })
+    const badge = page.getByRole('button', { name: /\+1 tier$/i })
+    await expect(badge).toBeVisible()
+    await badge.hover()
+    await expect(page.getByText('$25.25')).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText(/percentage adjustment does not apply here/i)).toBeVisible()
   })
 
   // The list's prices travel as a CSV keyed by SKU, one rung per row: the
