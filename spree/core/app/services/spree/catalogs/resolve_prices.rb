@@ -28,11 +28,21 @@ module Spree
     #
     # Built once per page of products and reused, so a fifty-row listing is
     # two queries rather than a hundred.
+    #
+    # Built from a catalog, the list read is the catalog's own and only while
+    # it is in effect — a draft or expired list leaves the agreement at base.
+    # Built from a price list directly, that list is read as it stands: the
+    # caller is the list's own editor, where a merchant pricing a draft has
+    # to see the rows they are typing (docs/plans/6.0-volume-pricing.md).
     class ResolvePrices
-      # @param catalog [Spree::Catalog]
+      # @param catalog [Spree::Catalog, nil] the agreement to read, through its list
+      # @param price_list [Spree::PriceList, nil] a list to read as-is; one of the two
       # @param currency [String] the currency to read prices in
-      def initialize(catalog:, currency:)
+      def initialize(currency:, catalog: nil, price_list: nil)
+        raise ArgumentError, 'pass a catalog or a price list' if catalog.nil? && price_list.nil?
+
         @catalog = catalog
+        @price_list = price_list unless price_list.nil?
         @currency = currency.to_s.upcase
       end
 

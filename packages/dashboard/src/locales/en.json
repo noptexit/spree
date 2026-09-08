@@ -3387,6 +3387,17 @@
             "select_row": "Select product",
             "title": "Products"
           },
+          "prices": {
+            "column_price": "Price",
+            "column_source": "From",
+            "source_help": {
+              "explicit": "An amount entered on this price list.",
+              "automatic": "The shop price with this list's percentage applied.",
+              "base": "The normal shop price. This list does not price this product."
+            },
+            "tier_fixed_note": "A percentage adjustment does not apply here. These tiers fix the price.",
+            "tier_preview": "What this list charges"
+          },
           "products_help": "Pick the products this list applies to. Placeholder prices are created on save — fill them in with Edit prices.",
           "products_help_with_prices_one": "Pick the products this list applies to. {{count}} price is configured — use Edit prices to update it.",
           "products_help_with_prices_other": "Pick the products this list applies to. {{count}} prices are configured — use Edit prices to update them.",

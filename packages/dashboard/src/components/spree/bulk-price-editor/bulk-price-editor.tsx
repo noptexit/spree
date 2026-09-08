@@ -140,7 +140,7 @@ export function BulkPriceEditor({
   // stable across renders; the wrapper object is not). Closing over the
   // wrapper would put a fresh reference in every callback's dep array
   // and tank the parent via the `onStateChange` effect below.
-  const { mutateAsync: bulkUpsertAsync, isPending: isSaving } = useBulkUpsertPrices()
+  const { mutateAsync: bulkUpsertAsync, isPending: isSaving } = useBulkUpsertPrices(priceListId)
   const localeForCurrency = useCurrencyLocale()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')

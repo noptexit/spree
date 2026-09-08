@@ -3427,6 +3427,17 @@
             "select_row": "Wybierz produkt",
             "title": "Produkty"
           },
+          "prices": {
+            "column_price": "Cena",
+            "column_source": "Źródło",
+            "source_help": {
+              "explicit": "Kwota wprowadzona na tym cenniku.",
+              "automatic": "Cena sklepowa z zastosowanym procentem tego cennika.",
+              "base": "Zwykła cena sklepowa. Ten cennik nie wycenia tego produktu."
+            },
+            "tier_fixed_note": "Procentowa korekta nie ma tu zastosowania. Te progi ustalają cenę.",
+            "tier_preview": "Ile pobiera ten cennik"
+          },
           "products_help": "Wybierz produkty, których dotyczy ten cennik. Ceny zastępcze zostaną utworzone przy zapisie — uzupełnij je przez „Edytuj ceny”.",
           "products_help_with_prices_one": "Wybierz produkty, których dotyczy ten cennik. Skonfigurowano {{count}} cenę — użyj „Edytuj ceny”, aby ją zaktualizować.",
           "products_help_with_prices_other": "Wybierz produkty, których dotyczy ten cennik. Skonfigurowano {{count}} ceny — użyj „Edytuj ceny”, aby je zaktualizować.",
