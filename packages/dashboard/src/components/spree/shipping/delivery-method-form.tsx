@@ -544,10 +544,22 @@ function ProvidersCard({
   // harmless (blank resolves to Internal) but the shown and saved values
   // disagreed. Seed it once the default is known, leaving a touched field or
   // a loaded record alone.
+  //
+  // Check the live value as well as the render-time `rateProvider`: when the
+  // sheet resets the form from a loaded record, this effect runs from a
+  // render that still saw the field blank, and trusting that snapshot alone
+  // seeded the default over the record's own provider — every freight or
+  // carrier method opened as Internal.
   const defaultRateProvider = rateProviders?.default ?? ''
   const rateProviderDirty = !!form.formState.dirtyFields.rate_provider
   useEffect(() => {
-    if (!defaultRateProvider || rateProvider || rateProviderDirty) return
+    if (
+      !defaultRateProvider ||
+      rateProvider ||
+      form.getValues('rate_provider') ||
+      rateProviderDirty
+    )
+      return
 
     form.setValue('rate_provider', defaultRateProvider)
   }, [defaultRateProvider, rateProvider, rateProviderDirty, form])
