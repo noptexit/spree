@@ -154,7 +154,10 @@ module Spree
       end
 
       def create_draft_order
-        @order = create_draft_order!(cart)
+        # Reloaded because the copier writes the totals with update_columns,
+        # which leaves this instance holding the zeros it was built with —
+        # and the payment decision immediately below is made against them.
+        @order = create_draft_order!(cart).reload
       end
 
       def process_payments
@@ -387,11 +390,12 @@ module Spree
         order.payments.reset
       end
 
-      # Completion gates on "a valid payment exists covering the total",
-      # never on paid? — a net-terms order completes with a pending payment.
+      # Completion gates on "a valid payment exists covering what is owed at
+      # checkout", never on paid? — a net-terms order completes with a
+      # pending payment.
       def payment_covered?(order)
         order.payments.reset
-        order.payments.valid.where(status: %w[pending processing completed]).sum(:amount) >= order.total
+        order.payments.valid.where(status: %w[pending processing completed]).sum(:amount) >= order.amount_due_at_checkout
       end
 
       # The FINALIZE phase: the order-side completion workflow owns the

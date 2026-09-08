@@ -12698,6 +12698,25 @@ paths:
                   - key: maximum_weight
                     type: decimal
                     default:
+                - type: volume_rule
+                  name: Volume
+                  description: Limits the delivery method to shipments within a volume
+                    range, in cubic meters
+                  preference_schema:
+                  - key: minimum_volume
+                    type: decimal
+                    default:
+                  - key: maximum_volume
+                    type: decimal
+                    default:
+                - type: company_rule
+                  name: Company
+                  description: Offers the delivery method only to orders placed for
+                    a company, or only to orders that are not
+                  preference_schema:
+                  - key: company_orders_only
+                    type: boolean
+                    default: true
               schema:
                 type: object
                 properties:
@@ -13540,8 +13559,8 @@ paths:
               example:
                 data:
                 - id: prod_UkLWZg9DAJ
-                  name: Product 1733250
-                  slug: product-1733250
+                  name: Product 1683250
+                  slug: product-1683250
                   meta_title:
                   meta_description:
                   meta_keywords:
@@ -13784,8 +13803,8 @@ paths:
             application/json:
               example:
                 id: prod_UkLWZg9DAJ
-                name: Product 1766710
-                slug: product-1766710
+                name: Product 1716710
+                slug: product-1716710
                 meta_title:
                 meta_description:
                 meta_keywords:
@@ -13864,7 +13883,7 @@ paths:
               example:
                 id: prod_UkLWZg9DAJ
                 name: Hand-thrown mug, large
-                slug: product-1798212
+                slug: product-1748212
                 meta_title:
                 meta_description:
                 meta_keywords:
@@ -14797,10 +14816,10 @@ paths:
             application/json:
               example:
                 direct_upload:
-                  url: http://www.example.com/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiJuem5oOGdra3VxendvbDc1ODBxNHNwZmpmMjVxIiwiY29udGVudF90eXBlIjoiYXBwbGljYXRpb24vcGRmIiwiY29udGVudF9sZW5ndGgiOjUxMjM0LCJjaGVja3N1bSI6IlZqaHowNGxRdUVHdXY0bkR2aHNhTlE9PSIsInNlcnZpY2VfbmFtZSI6InRlc3QifSwiZXhwIjoiMjAyNi0wMS0xNVQxMjowNTowMC4wMDBaIiwicHVyIjoiYmxvYl90b2tlbiJ9fQ==--843c7610fc561390e804dc2e3a0e4c59962ce71f
+                  url: http://www.example.com/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiJuem5oOGdra3VxendvbDc1ODBxNHNwZmpmMjVxIiwiY29udGVudF90eXBlIjoiYXBwbGljYXRpb24vcGRmIiwiY29udGVudF9sZW5ndGgiOjUxMjM0LCJjaGVja3N1bSI6IlZqaHowNGxRdUVHdXY0bkR2aHNhTlE9PSIsInNlcnZpY2VfbmFtZSI6InRlc3QifSwiZXhwIjoiMjAyNi0wMS0xNVQxMjowNTowMC4wMDBaIiwicHVyIjoiYmxvYl90b2tlbiJ9fQ==--d405b93fe982c6dc17f531d9513d5724b68c2440
                   headers:
                     Content-Type: application/pdf
-                signed_id: eyJfcmFpbHMiOnsiZGF0YSI6MSwicHVyIjoiYmxvYl9pZCJ9fQ==--28a036e0cefcfc50213d3130b0a4f29d67c78f7f
+                signed_id: eyJfcmFpbHMiOnsiZGF0YSI6MSwicHVyIjoiYmxvYl9pZCJ9fQ==--22b0b06fdcb2e00b205d0a6800cb54c308345930
               schema:
                 "$ref": "#/components/schemas/DirectUploadResponse"
       requestBody:
@@ -15605,8 +15624,8 @@ paths:
                     quantity: 1
                     line_item_id: li_UkLWZg9DAJ
                     variant_id: variant_UkLWZg9DAJ
-                    name: Product 1579315
-                    sku: SKU-199
+                    name: Product 1529315
+                    sku: SKU-188
                     options_text: ''
                   selected_delivery_rate_id: dr_gbHJdmfrXB
                   delivery_rates:
@@ -15712,8 +15731,8 @@ paths:
                   quantity: 1
                   line_item_id: li_UkLWZg9DAJ
                   variant_id: variant_UkLWZg9DAJ
-                  name: Product 158961
-                  sku: SKU-200
+                  name: Product 153961
+                  sku: SKU-189
                   options_text: ''
                 selected_delivery_rate_id: dr_gbHJdmfrXB
                 delivery_rates:
@@ -15826,8 +15845,8 @@ paths:
                   quantity: 1
                   line_item_id: li_UkLWZg9DAJ
                   variant_id: variant_UkLWZg9DAJ
-                  name: Product 1593170
-                  sku: SKU-201
+                  name: Product 1543170
+                  sku: SKU-190
                   options_text: ''
                 selected_delivery_rate_id: dr_gbHJdmfrXB
                 delivery_rates:
@@ -15920,8 +15939,8 @@ paths:
                   quantity: 1
                   line_item_id: li_UkLWZg9DAJ
                   variant_id: variant_UkLWZg9DAJ
-                  name: Product 1607276
-                  sku: SKU-202
+                  name: Product 1557276
+                  sku: SKU-191
                   options_text: ''
                 selected_delivery_rate_id: dr_gbHJdmfrXB
                 delivery_rates:
@@ -16115,7 +16134,7 @@ paths:
                   cancel_note:
                   items:
                   - id: li_UkLWZg9DAJ
-                    name: Product 16295
+                    name: Product 15795
                     options_text: ''
                     quantity: 1
                     currency: USD
@@ -16124,7 +16143,7 @@ paths:
                     total: '10.0'
                     display_total: "$10.00"
                     variant_id: variant_UkLWZg9DAJ
-                    sku: SKU-204
+                    sku: SKU-193
                     thumbnail_url:
                   fulfillments:
                   - id: ful_UkLWZg9DAJ
@@ -16145,8 +16164,8 @@ paths:
                       quantity: 1
                       line_item_id: li_UkLWZg9DAJ
                       variant_id: variant_UkLWZg9DAJ
-                      name: Product 16295
-                      sku: SKU-204
+                      name: Product 15795
+                      sku: SKU-193
                       options_text: ''
                     selected_delivery_rate_id: dr_gbHJdmfrXB
                     delivery_rates:
@@ -16316,7 +16335,7 @@ paths:
                 cancel_note:
                 items:
                 - id: li_UkLWZg9DAJ
-                  name: Product 1639755
+                  name: Product 1589755
                   options_text: ''
                   quantity: 1
                   currency: USD
@@ -16325,7 +16344,7 @@ paths:
                   total: '10.0'
                   display_total: "$10.00"
                   variant_id: variant_UkLWZg9DAJ
-                  sku: SKU-205
+                  sku: SKU-194
                   thumbnail_url:
                 fulfillments:
                 - id: ful_UkLWZg9DAJ
@@ -16346,8 +16365,8 @@ paths:
                     quantity: 1
                     line_item_id: li_UkLWZg9DAJ
                     variant_id: variant_UkLWZg9DAJ
-                    name: Product 1639755
-                    sku: SKU-205
+                    name: Product 1589755
+                    sku: SKU-194
                     options_text: ''
                   selected_delivery_rate_id: dr_gbHJdmfrXB
                   delivery_rates:
@@ -16513,7 +16532,7 @@ paths:
                 cancel_note:
                 items:
                 - id: li_UkLWZg9DAJ
-                  name: Product 1666554
+                  name: Product 1616554
                   options_text: ''
                   quantity: 1
                   currency: USD
@@ -16522,7 +16541,7 @@ paths:
                   total: '10.0'
                   display_total: "$10.00"
                   variant_id: variant_UkLWZg9DAJ
-                  sku: SKU-208
+                  sku: SKU-197
                   thumbnail_url:
                 fulfillments:
                 - id: ful_UkLWZg9DAJ
@@ -16543,8 +16562,8 @@ paths:
                     quantity: 1
                     line_item_id: li_UkLWZg9DAJ
                     variant_id: variant_UkLWZg9DAJ
-                    name: Product 1666554
-                    sku: SKU-208
+                    name: Product 1616554
+                    sku: SKU-197
                     options_text: ''
                   selected_delivery_rate_id: dr_gbHJdmfrXB
                   delivery_rates:
@@ -16717,7 +16736,7 @@ paths:
                 cancel_note:
                 items:
                 - id: li_UkLWZg9DAJ
-                  name: Product 1675038
+                  name: Product 1625038
                   options_text: ''
                   quantity: 1
                   currency: USD
@@ -16726,7 +16745,7 @@ paths:
                   total: '10.0'
                   display_total: "$10.00"
                   variant_id: variant_UkLWZg9DAJ
-                  sku: SKU-209
+                  sku: SKU-198
                   thumbnail_url:
                 fulfillments:
                 - id: ful_UkLWZg9DAJ
@@ -16747,8 +16766,8 @@ paths:
                     quantity: 1
                     line_item_id: li_UkLWZg9DAJ
                     variant_id: variant_UkLWZg9DAJ
-                    name: Product 1675038
-                    sku: SKU-209
+                    name: Product 1625038
+                    sku: SKU-198
                     options_text: ''
                   selected_delivery_rate_id: dr_gbHJdmfrXB
                   delivery_rates:
@@ -16984,7 +17003,7 @@ paths:
                 cancel_note:
                 items:
                 - id: li_UkLWZg9DAJ
-                  name: Product 1693962
+                  name: Product 1643962
                   options_text: ''
                   quantity: 1
                   currency: USD
@@ -16993,7 +17012,7 @@ paths:
                   total: '10.0'
                   display_total: "$10.00"
                   variant_id: variant_UkLWZg9DAJ
-                  sku: SKU-211
+                  sku: SKU-200
                   thumbnail_url:
                 fulfillments:
                 - id: ful_UkLWZg9DAJ
@@ -17014,8 +17033,8 @@ paths:
                     quantity: 1
                     line_item_id: li_UkLWZg9DAJ
                     variant_id: variant_UkLWZg9DAJ
-                    name: Product 1693962
-                    sku: SKU-211
+                    name: Product 1643962
+                    sku: SKU-200
                     options_text: ''
                   selected_delivery_rate_id: dr_gbHJdmfrXB
                   delivery_rates:
@@ -17157,7 +17176,7 @@ paths:
                 cancel_note:
                 items:
                 - id: li_UkLWZg9DAJ
-                  name: Product 1705749
+                  name: Product 1655749
                   options_text: ''
                   quantity: 1
                   currency: USD
@@ -17166,7 +17185,7 @@ paths:
                   total: '10.0'
                   display_total: "$10.00"
                   variant_id: variant_UkLWZg9DAJ
-                  sku: SKU-212
+                  sku: SKU-201
                   thumbnail_url:
                 fulfillments:
                 - id: ful_UkLWZg9DAJ
@@ -17187,8 +17206,8 @@ paths:
                     quantity: 1
                     line_item_id: li_UkLWZg9DAJ
                     variant_id: variant_UkLWZg9DAJ
-                    name: Product 1705749
-                    sku: SKU-212
+                    name: Product 1655749
+                    sku: SKU-201
                     options_text: ''
                   selected_delivery_rate_id: dr_gbHJdmfrXB
                   delivery_rates:
@@ -17453,7 +17472,7 @@ paths:
               example:
                 error:
                   code: processing_error
-                  message: Only 1 of Product 1837120 can be returned
+                  message: Only 1 of Product 1787120 can be returned
       requestBody:
         content:
           application/json:

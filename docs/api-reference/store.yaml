@@ -879,8 +879,8 @@ paths:
               example:
                 data:
                 - id: prod_UkLWZg9DAJ
-                  name: Product 2166979
-                  slug: product-2166979
+                  name: Product 2116979
+                  slug: product-2116979
                   meta_title:
                   meta_description:
                   meta_keywords:
@@ -1054,8 +1054,8 @@ paths:
               example:
                 data:
                 - id: prod_UkLWZg9DAJ
-                  name: Product 2639085
-                  slug: product-2639085
+                  name: Product 2589085
+                  slug: product-2589085
                   meta_title:
                   meta_description:
                   meta_keywords:
@@ -1086,8 +1086,8 @@ paths:
                   original_price:
                   seller_id:
                 - id: prod_gbHJdmfrXB
-                  name: Product 2648209
-                  slug: product-2648209
+                  name: Product 2598209
+                  slug: product-2598209
                   meta_title:
                   meta_description:
                   meta_keywords:
@@ -1216,8 +1216,8 @@ paths:
             application/json:
               example:
                 id: prod_UkLWZg9DAJ
-                name: Product 2916885
-                slug: product-2916885
+                name: Product 2866885
+                slug: product-2866885
                 meta_title:
                 meta_description:
                 meta_keywords:
@@ -1564,6 +1564,7 @@ paths:
                   order_minimum:
                   order_minimum_shortfall:
                   below_order_minimum: false
+                  freight_summary:
                   shipping_eq_billing_address: true
                   discounts: []
                   fees: []
@@ -1575,8 +1576,8 @@ paths:
                     preorder_ships_at:
                     quantity: 1
                     currency: USD
-                    name: Product 190715
-                    slug: product-190715
+                    name: Product 185715
+                    slug: product-185715
                     options_text: ''
                     price: '10.0'
                     display_price: "$10.00"
@@ -1682,6 +1683,7 @@ paths:
                   order_minimum:
                   order_minimum_shortfall:
                   below_order_minimum: false
+                  freight_summary:
                   shipping_eq_billing_address: true
                   discounts: []
                   fees: []
@@ -1693,8 +1695,8 @@ paths:
                     preorder_ships_at:
                     quantity: 1
                     currency: USD
-                    name: Product 1912171
-                    slug: product-1912171
+                    name: Product 1862171
+                    slug: product-1862171
                     options_text: ''
                     price: '10.0'
                     display_price: "$10.00"
@@ -1863,6 +1865,7 @@ paths:
                 order_minimum:
                 order_minimum_shortfall:
                 below_order_minimum: false
+                freight_summary:
                 shipping_eq_billing_address: true
                 discounts: []
                 fees: []
@@ -2001,7 +2004,7 @@ paths:
                 total_quantity: 0
                 warnings:
                 - code: line_item_removed
-                  message: Product 195307 was removed because it was sold out
+                  message: Product 190307 was removed because it was sold out
                   line_item_id: li_UkLWZg9DAJ
                   variant_id: variant_UkLWZg9DAJ
                 coupon_code:
@@ -2044,6 +2047,7 @@ paths:
                 order_minimum:
                 order_minimum_shortfall:
                 below_order_minimum: false
+                freight_summary:
                 shipping_eq_billing_address: true
                 discounts: []
                 fees: []
@@ -2210,6 +2214,7 @@ paths:
                 order_minimum:
                 order_minimum_shortfall:
                 below_order_minimum: false
+                freight_summary:
                 shipping_eq_billing_address: true
                 discounts: []
                 fees: []
@@ -2221,8 +2226,8 @@ paths:
                   preorder_ships_at:
                   quantity: 1
                   currency: USD
-                  name: Product 1963263
-                  slug: product-1963263
+                  name: Product 1913263
+                  slug: product-1913263
                   options_text: ''
                   price: '10.0'
                   display_price: "$10.00"
@@ -2495,6 +2500,7 @@ paths:
                 order_minimum:
                 order_minimum_shortfall:
                 below_order_minimum: false
+                freight_summary:
                 shipping_eq_billing_address: false
                 discounts: []
                 fees: []
@@ -2506,8 +2512,8 @@ paths:
                   preorder_ships_at:
                   quantity: 1
                   currency: USD
-                  name: Product 1988992
-                  slug: product-1988992
+                  name: Product 1938992
+                  slug: product-1938992
                   options_text: ''
                   price: '10.0'
                   display_price: "$10.00"
@@ -2719,8 +2725,8 @@ paths:
                   preorder_ships_at:
                   quantity: 1
                   currency: USD
-                  name: Product 2014794
-                  slug: product-2014794
+                  name: Product 1964794
+                  slug: product-1964794
                   options_text: ''
                   price: '10.0'
                   display_price: "$10.00"
@@ -2750,6 +2756,7 @@ paths:
                   tracking_url:
                   pickup_point_data:
                   selected_delivery_rate_id: dr_gbHJdmfrXB
+                  unpriced: false
                   cost: '10.0'
                   display_cost: "$10.00"
                   total: '10.0'
@@ -2805,6 +2812,8 @@ paths:
                     carrier:
                     service_level:
                     estimated_delivery_date:
+                    unpriced: false
+                    freight_summary:
                     display_cost: "$10.00"
                     display_total: "$10.00"
                     display_additional_tax_total: "$0.00"
@@ -3044,6 +3053,7 @@ paths:
                 order_minimum:
                 order_minimum_shortfall:
                 below_order_minimum: false
+                freight_summary:
                 shipping_eq_billing_address: true
                 discounts: []
                 fees: []
@@ -3055,8 +3065,8 @@ paths:
                   preorder_ships_at:
                   quantity: 1
                   currency: USD
-                  name: Product 2302614
-                  slug: product-2302614
+                  name: Product 2252614
+                  slug: product-2252614
                   options_text: ''
                   price: '10.0'
                   display_price: "$10.00"
@@ -3242,6 +3252,7 @@ paths:
                 order_minimum:
                 order_minimum_shortfall:
                 below_order_minimum: false
+                freight_summary:
                 shipping_eq_billing_address: true
                 discounts: []
                 fees: []
@@ -3253,8 +3264,8 @@ paths:
                   preorder_ships_at:
                   quantity: 1
                   currency: USD
-                  name: Product 2313461
-                  slug: product-2313461
+                  name: Product 2263461
+                  slug: product-2263461
                   options_text: ''
                   price: '10.0'
                   display_price: "$10.00"
@@ -3428,6 +3439,7 @@ paths:
                 order_minimum:
                 order_minimum_shortfall:
                 below_order_minimum: false
+                freight_summary:
                 shipping_eq_billing_address: false
                 discounts: []
                 fees: []
@@ -3439,8 +3451,8 @@ paths:
                   preorder_ships_at:
                   quantity: 1
                   currency: USD
-                  name: Product 2338182
-                  slug: product-2338182
+                  name: Product 2288182
+                  slug: product-2288182
                   options_text: ''
                   price: '10.0'
                   display_price: "$10.00"
@@ -3470,6 +3482,7 @@ paths:
                   tracking_url:
                   pickup_point_data:
                   selected_delivery_rate_id: dr_gbHJdmfrXB
+                  unpriced: false
                   cost: '10.0'
                   display_cost: "$10.00"
                   total: '10.0'
@@ -3525,6 +3538,8 @@ paths:
                     carrier:
                     service_level:
                     estimated_delivery_date:
+                    unpriced: false
+                    freight_summary:
                     display_cost: "$10.00"
                     display_total: "$10.00"
                     display_additional_tax_total: "$0.00"
@@ -3721,6 +3736,7 @@ paths:
                 order_minimum:
                 order_minimum_shortfall:
                 below_order_minimum: false
+                freight_summary:
                 shipping_eq_billing_address: true
                 discounts: []
                 fees: []
@@ -3732,8 +3748,8 @@ paths:
                   preorder_ships_at:
                   quantity: 1
                   currency: USD
-                  name: Product 2355702
-                  slug: product-2355702
+                  name: Product 2305702
+                  slug: product-2305702
                   options_text: ''
                   price: '10.0'
                   display_price: "$10.00"
@@ -3974,6 +3990,7 @@ paths:
                 order_minimum:
                 order_minimum_shortfall:
                 below_order_minimum: false
+                freight_summary:
                 shipping_eq_billing_address: true
                 discounts: []
                 fees: []
@@ -3985,8 +4002,8 @@ paths:
                   preorder_ships_at:
                   quantity: 1
                   currency: USD
-                  name: Product 2399569
-                  slug: product-2399569
+                  name: Product 2349569
+                  slug: product-2349569
                   options_text: ''
                   price: '10.0'
                   display_price: "$10.00"
@@ -4139,10 +4156,10 @@ paths:
                 total_quantity: 2
                 warnings:
                 - code: delivery_unavailable
-                  message: Product 24263 cannot be delivered to the selected address
+                  message: Product 23763 cannot be delivered to the selected address
                   line_item_id: li_UkLWZg9DAJ
                 - code: delivery_unavailable
-                  message: Product 243298 cannot be delivered to the selected address
+                  message: Product 238298 cannot be delivered to the selected address
                   line_item_id: li_gbHJdmfrXB
                 coupon_code:
                 item_total: '29.99'
@@ -4188,6 +4205,7 @@ paths:
                 order_minimum:
                 order_minimum_shortfall:
                 below_order_minimum: false
+                freight_summary:
                 shipping_eq_billing_address: true
                 discounts: []
                 fees: []
@@ -4199,8 +4217,8 @@ paths:
                   preorder_ships_at:
                   quantity: 1
                   currency: USD
-                  name: Product 24263
-                  slug: product-24263
+                  name: Product 23763
+                  slug: product-23763
                   options_text: ''
                   price: '10.0'
                   display_price: "$10.00"
@@ -4230,8 +4248,8 @@ paths:
                   preorder_ships_at:
                   quantity: 1
                   currency: USD
-                  name: Product 243298
-                  slug: product-243298
+                  name: Product 238298
+                  slug: product-238298
                   options_text: ''
                   price: '19.99'
                   display_price: "$19.99"
@@ -4448,6 +4466,7 @@ paths:
                 order_minimum:
                 order_minimum_shortfall:
                 below_order_minimum: false
+                freight_summary:
                 shipping_eq_billing_address: true
                 discounts: []
                 fees: []
@@ -4459,8 +4478,8 @@ paths:
                   preorder_ships_at:
                   quantity: 1
                   currency: USD
-                  name: Product 2499165
-                  slug: product-2499165
+                  name: Product 2449165
+                  slug: product-2449165
                   options_text: ''
                   price: '10.0'
                   display_price: "$10.00"
@@ -4631,6 +4650,7 @@ paths:
                 order_minimum:
                 order_minimum_shortfall:
                 below_order_minimum: false
+                freight_summary:
                 shipping_eq_billing_address: true
                 discounts: []
                 fees: []
@@ -5276,6 +5296,7 @@ paths:
                 order_minimum:
                 order_minimum_shortfall:
                 below_order_minimum: false
+                freight_summary:
                 shipping_eq_billing_address: true
                 discounts: []
                 fees: []
@@ -5287,8 +5308,8 @@ paths:
                   preorder_ships_at:
                   quantity: 1
                   currency: USD
-                  name: Product 3119789
-                  slug: product-3119789
+                  name: Product 3069789
+                  slug: product-3069789
                   options_text: ''
                   price: '10.0'
                   display_price: "$10.00"
@@ -5493,6 +5514,7 @@ paths:
                 order_minimum:
                 order_minimum_shortfall:
                 below_order_minimum: false
+                freight_summary:
                 shipping_eq_billing_address: true
                 discounts: []
                 fees: []
@@ -5504,8 +5526,8 @@ paths:
                   preorder_ships_at:
                   quantity: 1
                   currency: USD
-                  name: Product 313179
-                  slug: product-313179
+                  name: Product 308179
+                  slug: product-308179
                   options_text: ''
                   price: '10.0'
                   display_price: "$10.00"
@@ -5676,8 +5698,8 @@ paths:
                   preorder_ships_at:
                   quantity: 1
                   currency: USD
-                  name: Product 253496
-                  slug: product-253496
+                  name: Product 248496
+                  slug: product-248496
                   options_text: ''
                   price: '10.0'
                   display_price: "$10.00"
@@ -5707,6 +5729,7 @@ paths:
                   tracking_url:
                   pickup_point_data:
                   selected_delivery_rate_id: dr_gbHJdmfrXB
+                  unpriced: false
                   cost: '100.0'
                   display_cost: "$100.00"
                   total: '100.0'
@@ -5771,6 +5794,8 @@ paths:
                     carrier:
                     service_level:
                     estimated_delivery_date:
+                    unpriced: false
+                    freight_summary:
                     display_cost: "$10.00"
                     display_total: "$10.00"
                     display_additional_tax_total: "$0.00"
@@ -6797,8 +6822,8 @@ paths:
                     preorder_ships_at:
                     quantity: 1
                     currency: USD
-                    name: Product 2185270
-                    slug: product-2185270
+                    name: Product 2135270
+                    slug: product-2135270
                     options_text: ''
                     price: '10.0'
                     display_price: "$10.00"
@@ -6828,6 +6853,7 @@ paths:
                     tracking_url:
                     pickup_point_data:
                     selected_delivery_rate_id: dr_gbHJdmfrXB
+                    unpriced: false
                     cost: '100.0'
                     display_cost: "$100.00"
                     total: '100.0'
@@ -6892,6 +6918,8 @@ paths:
                       carrier:
                       service_level:
                       estimated_delivery_date:
+                      unpriced: false
+                      freight_summary:
                       display_cost: "$10.00"
                       display_total: "$10.00"
                       display_additional_tax_total: "$0.00"
@@ -7116,8 +7144,8 @@ paths:
                   preorder_ships_at:
                   quantity: 1
                   currency: USD
-                  name: Product 2205633
-                  slug: product-2205633
+                  name: Product 2155633
+                  slug: product-2155633
                   options_text: ''
                   price: '10.0'
                   display_price: "$10.00"
@@ -7147,6 +7175,7 @@ paths:
                   tracking_url:
                   pickup_point_data:
                   selected_delivery_rate_id: dr_gbHJdmfrXB
+                  unpriced: false
                   cost: '100.0'
                   display_cost: "$100.00"
                   total: '100.0'
@@ -7211,6 +7240,8 @@ paths:
                     carrier:
                     service_level:
                     estimated_delivery_date:
+                    unpriced: false
+                    freight_summary:
                     display_cost: "$10.00"
                     display_total: "$10.00"
                     display_additional_tax_total: "$0.00"
@@ -9676,7 +9707,7 @@ paths:
                 variant:
                   id: variant_gbHJdmfrXB
                   product_id: prod_gbHJdmfrXB
-                  sku: SKU-377
+                  sku: SKU-366
                   options_text: ''
                   track_inventory: true
                   media_count: 0
@@ -10855,8 +10886,8 @@ paths:
                     preorder_ships_at:
                     quantity: 1
                     currency: USD
-                    name: Product 2175649
-                    slug: product-2175649
+                    name: Product 2125649
+                    slug: product-2125649
                     options_text: ''
                     price: '10.0'
                     display_price: "$10.00"
@@ -10886,6 +10917,7 @@ paths:
                     tracking_url:
                     pickup_point_data:
                     selected_delivery_rate_id: dr_gbHJdmfrXB
+                    unpriced: false
                     cost: '100.0'
                     display_cost: "$100.00"
                     total: '100.0'
@@ -10950,6 +10982,8 @@ paths:
                       carrier:
                       service_level:
                       estimated_delivery_date:
+                      unpriced: false
+                      freight_summary:
                       display_cost: "$10.00"
                       display_total: "$10.00"
                       display_additional_tax_total: "$0.00"
@@ -12084,6 +12118,10 @@ components:
         below_order_minimum:
           type: boolean
           nullable: true
+        freight_summary:
+          allOf:
+          - "$ref": "#/components/schemas/FreightSummary"
+          nullable: true
         shipping_eq_billing_address:
           type: boolean
         discounts:
@@ -12177,6 +12215,7 @@ components:
       - order_minimum
       - order_minimum_shortfall
       - below_order_minimum
+      - freight_summary
       - shipping_eq_billing_address
       - discounts
       - fees
@@ -12815,6 +12854,12 @@ components:
         estimated_delivery_date:
           type: string
           nullable: true
+        unpriced:
+          type: boolean
+        freight_summary:
+          allOf:
+          - "$ref": "#/components/schemas/FreightSummary"
+          nullable: true
         display_cost:
           type: string
         display_total:
@@ -12840,6 +12885,8 @@ components:
       - carrier
       - service_level
       - estimated_delivery_date
+      - unpriced
+      - freight_summary
       - display_cost
       - display_total
       - display_additional_tax_total
@@ -13072,6 +13119,30 @@ components:
       - amount
       - display_amount
       x-typelizer: true
+    FreightSummary:
+      type: object
+      properties:
+        total_units:
+          type: number
+        total_cartons:
+          type: number
+        total_pallets:
+          type: number
+          nullable: true
+        total_volume:
+          type: string
+        total_weight:
+          type: string
+        complete:
+          type: boolean
+      required:
+      - total_units
+      - total_cartons
+      - total_pallets
+      - total_volume
+      - total_weight
+      - complete
+      x-typelizer: true
     Fulfillment:
       type: object
       properties:
@@ -13091,6 +13162,8 @@ components:
         selected_delivery_rate_id:
           type: string
           nullable: true
+        unpriced:
+          type: boolean
         cost:
           type: string
           nullable: true
@@ -13164,6 +13237,7 @@ components:
       - tracking_url
       - pickup_point_data
       - selected_delivery_rate_id
+      - unpriced
       - cost
       - display_cost
       - total

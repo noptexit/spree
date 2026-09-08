@@ -135,7 +135,12 @@ module Spree
           failure(@source, Spree.t('fulfillments.errors.backordered_units'))
         end
 
-        return if order.paid?
+        # An order that owes nothing is ready to hand over, which the old
+        # paid-in-full guard denied it: `paid?` requires a positive total, so
+        # a fully discounted or store-credit-paid order was refused dispatch.
+        # Measured against what was owed at checkout, so an arrangement that
+        # collects part of the total up front can still ship.
+        return if order.payment_total >= order.amount_due_at_checkout
 
         # Charging later is a deliberate choice, so an authorized-but-uncaptured
         # order is ready to hand over: on dispatch the money is taken below,

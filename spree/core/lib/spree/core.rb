@@ -509,6 +509,28 @@ module Spree
     Rails.application.config.spree.delivery_rate_providers = value
   end
 
+  # Re-resolves every provider registry entry by name, in place.
+  #
+  # The registries hold class objects, and in development Zeitwerk reloads
+  # the classes underneath them on each code change. The old objects stay in
+  # the array, and a method on one — `service_catalog`, say — looks its
+  # sibling constants up in a namespace that no longer exists, which is a
+  # NameError on the admin provider catalog until the server restarts.
+  # Swapping each entry for the class currently answering to its name fixes
+  # that; in place, so a gem that appended its provider keeps its entry.
+  # Anonymous classes have no name to resolve and are left alone.
+  #
+  # Run from the engine's to_prepare hook: every reload in development, once
+  # at boot in production.
+  #
+  # @return [void]
+  def self.refresh_provider_registries!
+    [Rails.application.config.spree.delivery_rate_providers,
+     Rails.application.config.spree.fulfillment_providers].compact.each do |registry|
+      registry.map! { |entry| entry.is_a?(Module) && entry.name ? entry.name.constantize : entry }
+    end
+  end
+
   # Strategies selectable as a digital asset's source. Core registers the
   # uploaded-file default; host apps append providers that resolve a
   # deliverable elsewhere (a licensing system, a code pool).
@@ -867,6 +889,7 @@ require 'spree/core/engine'
 require 'spree/i18n'
 require 'spree/iso_data'
 require 'spree/localized_number'
+require 'spree/measurement'
 require 'spree/translations'
 require 'spree/money'
 require 'spree/service_module'

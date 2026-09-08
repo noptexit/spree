@@ -840,7 +840,19 @@
         "units_per_carton": {
           "label": "Unités par carton"
         },
-        "quantity_rule_invalid": "Saisissez un nombre entier supérieur à zéro, ou laissez vide."
+        "quantity_rule_invalid": "Saisissez un nombre entier supérieur à zéro, ou laissez vide.",
+        "carton_package_type_id": {
+          "label": "Carton",
+          "help": "Le carton dans lequel ce produit est emballé. Ses dimensions valent pour tout ce qui est emballé de la même façon."
+        },
+        "carton_weight": {
+          "label": "Poids du carton",
+          "help": "Le poids d’un carton rempli."
+        },
+        "cartons_per_pallet": {
+          "label": "Cartons par palette"
+        },
+        "carton_weight_invalid": "Saisissez un poids de carton supérieur à zéro, ou laissez le champ vide."
       },
       "minimum_order_quantity": {
         "label": "Quantité minimale de commande",
@@ -1294,6 +1306,8 @@
         "local": "Uniquement les articles à cet emplacement"
       },
       "search_placeholder": "Rechercher par nom…",
+      "section_behavior": "Comportement",
+      "section_details": "Détails",
       "section_pickup": "Retrait",
       "section_returns": "Retours",
       "stock_levels": {
@@ -1511,7 +1525,11 @@
           "identity": "Identité",
           "tax_category_placeholder": "Hériter du produit",
           "ordering": "Commande B2B",
-          "ordering_help": "Combien un acheteur doit prendre. Le stock reste compté en unités."
+          "ordering_help": "Combien un acheteur doit prendre. Le stock reste compté en unités.",
+          "packing": "Emballage",
+          "packing_help": "Comment ce produit quitte l’entrepôt en gros. Les devis de fret reposent sur ces chiffres.",
+          "carton_placeholder": "Aucun carton",
+          "pending_save": "Les modifications sont enregistrées avec le produit."
         },
         "title": "Variantes",
         "variant_label": "Variante"
@@ -1708,6 +1726,10 @@
           "name": "Canal de vente",
           "description": "Proposer ce mode de livraison uniquement sur les canaux choisis"
         },
+        "company_rule": {
+          "name": "Entreprise",
+          "description": "Proposer ce mode de livraison uniquement aux commandes passées pour une entreprise, ou uniquement aux autres"
+        },
         "excluded_products_rule": {
           "name": "Produits exclus",
           "description": "Masquer ce mode de livraison si la commande contient un de ces produits"
@@ -1715,6 +1737,10 @@
         "item_total_rule": {
           "name": "Total des articles",
           "description": "Proposer ce mode de livraison uniquement si le total est dans une plage"
+        },
+        "volume_rule": {
+          "name": "Volume",
+          "description": "Proposer ce mode de livraison uniquement si le volume est dans une plage, en mètres cubes"
         },
         "weight_rule": {
           "name": "Poids",

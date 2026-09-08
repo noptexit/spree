@@ -29,6 +29,7 @@ export { DigitalAssetSchema, type DigitalAsset } from './DigitalAsset';
 export { DigitalLinkSchema, type DigitalLink } from './DigitalLink';
 export { DiscountSchema, type Discount } from './Discount';
 export { FeeSchema, type Fee } from './Fee';
+export { FreightSummarySchema, type FreightSummary } from './FreightSummary';
 export { FulfillmentSchema, type Fulfillment } from './Fulfillment';
 export { GiftCardSchema, type GiftCard } from './GiftCard';
 export { GiftCardBatchSchema, type GiftCardBatch } from './GiftCardBatch';

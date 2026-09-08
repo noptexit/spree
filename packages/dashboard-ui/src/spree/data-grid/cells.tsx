@@ -491,7 +491,12 @@ interface SelectCellProps<V extends string> extends BaseCellProps {
   value: V | null
   /** `null` when the cell is cleared (Delete key, or pasting a blank). */
   onChange: (next: V | null) => void
-  options: ReadonlyArray<{ value: V; label: string }>
+  /**
+   * `label` is what the cell shows and what a pasted value matches against, so
+   * it stays the plain name. `hint` is extra detail shown only in the open
+   * list — a size, a code — for telling similar options apart.
+   */
+  options: ReadonlyArray<{ value: V; label: string; hint?: string }>
   /** Shown when value is null — e.g. "—" for "inherit the default". */
   nullLabel?: string
 }
@@ -557,7 +562,14 @@ export function SelectCell<V extends string>({
       <SelectContent>
         {options.map((opt) => (
           <SelectItem key={opt.value} value={opt.value}>
-            {opt.label}
+            {opt.hint ? (
+              <span className="flex w-full items-baseline justify-between gap-4">
+                <span>{opt.label}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">{opt.hint}</span>
+              </span>
+            ) : (
+              opt.label
+            )}
           </SelectItem>
         ))}
       </SelectContent>

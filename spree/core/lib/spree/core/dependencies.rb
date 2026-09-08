@@ -214,6 +214,11 @@ module Spree
         address_create_service: 'Spree::Addresses::Create',
         address_update_service: 'Spree::Addresses::Update',
 
+        # What checkout must collect before a purchase is placed, and before
+        # it may be dispatched. The whole total here; replaced where part
+        # payment is arranged (deposits, net terms).
+        purchase_amount_due_at_checkout_service: 'Spree::Purchases::AmountDueAtCheckout',
+
         payment_create_service: 'Spree::Payments::Create',
         payment_process_workflow: 'Spree::Payments::Process',
         payment_capture_workflow: 'Spree::Payments::Capture',
