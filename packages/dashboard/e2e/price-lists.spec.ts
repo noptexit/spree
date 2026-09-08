@@ -3,12 +3,14 @@ import { expect, type Page, test } from '@playwright/test'
 import {
   addQuantityBreak,
   csvFile,
+  deleteCatalogPickerProducts,
   FIXTURE_PROMO_PRODUCT,
   FIXTURE_PROMO_SKU,
   gotoIndex,
   login,
   openRowMenu,
   rowButton,
+  seedCatalogPickerProducts,
 } from './helpers'
 
 const PRICE_LISTS_PATH = (storeId: string) => `/${storeId}/products/price-lists`
@@ -320,6 +322,70 @@ test.describe('price lists', () => {
         .getByLabel(/^price for/i)
         .first(),
     ).toHaveValue('33.33')
+  })
+
+  // Paging the products card must not write anything. The pagination control
+  // lives inside the price list's own form, so a button without an explicit
+  // type submits it — the page-2 click used to PATCH the whole list
+  // (docs/plans/6.0-volume-pricing.md).
+  test('paging the products card does not save the price list', async ({ page }) => {
+    const creds = await login(page)
+    const prefix = `E2E PL Paging Product ${Date.now()}`
+    // The card holds 25 rows a page, so a second page needs more than that.
+    const seeded = await seedCatalogPickerProducts(
+      page,
+      creds.store_id,
+      prefix,
+      creds.accessToken,
+      30,
+    )
+
+    try {
+      await gotoIndex(page, PRICE_LISTS_PATH(creds.store_id), CTA)
+      const name = `E2E PL Paging ${Date.now()}`
+      await startNewPriceList(page, creds.store_id, name)
+      await submitCreate(page, name)
+
+      // Attach them through the API: the picker would take 30 clicks, and the
+      // subject here is paging, not membership.
+      const priceListId = page.url().split('/price-lists/')[1]?.split(/[/?]/)[0] ?? ''
+      expect(priceListId).toMatch(/^pl_/)
+      await page.request.post(`/api/v3/admin/price_lists/${priceListId}/products`, {
+        headers: {
+          'X-Spree-Store-Id': creds.store_id,
+          Authorization: `Bearer ${creds.accessToken}`,
+        },
+        data: { product_ids: seeded },
+      })
+      await page.reload()
+
+      const writes: string[] = []
+      page.on('request', (request) => {
+        if (request.method() === 'PATCH' && /\/price_lists\//.test(request.url())) {
+          writes.push(request.url())
+        }
+      })
+
+      // Unconditional: if there is no second page the seeding is wrong and the
+      // test must say so rather than skip the click it exists to make.
+      const next = page.getByRole('button', { name: /next page/i })
+      await expect(next).toBeVisible({ timeout: 15_000 })
+      await next.click()
+
+      // The page changed, and nothing was written on the way.
+      await expect(page.getByText(/page 2 of/i)).toBeVisible({ timeout: 15_000 })
+      expect(writes).toEqual([])
+      await expect(
+        page
+          .getByRole('main')
+          .getByRole('button', { name: /^save$/i })
+          .first(),
+      ).toBeDisabled()
+    } finally {
+      await deleteCatalogPickerProducts(page, creds.store_id, creds.accessToken, seeded).catch(
+        () => undefined,
+      )
+    }
   })
 
   // A ladder is edited in the same grid: a variant's row grows a rung per
