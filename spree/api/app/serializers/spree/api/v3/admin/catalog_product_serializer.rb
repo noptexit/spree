@@ -13,12 +13,28 @@ module Spree
         # variants, and a figure on the product row would have to pick one
         # variant to speak for the rest (docs/plans/6.0-volume-pricing.md).
         class CatalogProductSerializer < Admin::MembershipProductSerializer
+          typelize quantity_rule: ['CatalogProductTerm', nullable: true]
+
           # Priced off the same variant the row's own price is read from, so
           # the agreement's amount and the shop's describe the same offer.
           #
           # Null means nothing prices this variant in this currency at all —
           # distinct from a `base` source, which is a real amount the
           # agreement simply does not touch.
+          # This product's quantity terms under the agreement, rolled up from
+          # the variant rows the page already loaded. Its own request used to
+          # fetch every rule in the catalog unpaginated and group them the
+          # same way, which is the same object graph this endpoint holds
+          # (docs/plans/6.0-volume-pricing.md).
+          attribute :quantity_rule, if: proc { expand?('quantity_rule') } do |product|
+            rules = params[:catalog_quantity_rules]&.fetch(product.id, nil)
+
+            if rules.present?
+              term = Spree::Catalogs::ProductTerm.new(product: product, rules: rules)
+              Spree.api.admin_catalog_product_term_serializer.new(term, params: params).to_h
+            end
+          end
+
           # Every variant with what this agreement charges for it. A product's
           # variants can be priced differently — and carry different quantity
           # ladders — so a single figure on the product row names one variant's

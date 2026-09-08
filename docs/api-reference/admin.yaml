@@ -11566,7 +11566,7 @@ paths:
               example:
                 data:
                 - id: opt_UkLWZg9DAJ
-                  name: foo-size-7
+                  name: foo-size-1
                   label: Size
                   position: 1
                   kind: dropdown
@@ -11790,7 +11790,7 @@ paths:
             application/json:
               example:
                 id: opt_UkLWZg9DAJ
-                name: foo-size-11
+                name: foo-size-5
                 label: Size
                 position: 1
                 kind: dropdown
@@ -11864,7 +11864,7 @@ paths:
             application/json:
               example:
                 id: opt_UkLWZg9DAJ
-                name: foo-size-13
+                name: foo-size-7
                 label: Updated Label
                 position: 1
                 kind: dropdown
@@ -12575,11 +12575,11 @@ paths:
                   option_values:
                   - id: optval_UkLWZg9DAJ
                     option_type_id: opt_UkLWZg9DAJ
-                    name: size-7
+                    name: size-1
                     label: S
                     position: 1
                     color_code:
-                    option_type_name: foo-size-16
+                    option_type_name: foo-size-10
                     option_type_label: Size
                     image_url:
                     metadata: {}
@@ -12688,11 +12688,11 @@ paths:
                 option_values:
                 - id: optval_gbHJdmfrXB
                   option_type_id: opt_gbHJdmfrXB
-                  name: size-9
+                  name: size-3
                   label: S
                   position: 1
                   color_code:
-                  option_type_name: foo-size-18
+                  option_type_name: foo-size-12
                   option_type_label: Size
                   image_url:
                   metadata: {}
@@ -12823,11 +12823,11 @@ paths:
                 option_values:
                 - id: optval_UkLWZg9DAJ
                   option_type_id: opt_UkLWZg9DAJ
-                  name: size-10
+                  name: size-4
                   label: S
                   position: 1
                   color_code:
-                  option_type_name: foo-size-19
+                  option_type_name: foo-size-13
                   option_type_label: Size
                   image_url:
                   metadata: {}
@@ -12931,11 +12931,11 @@ paths:
                 option_values:
                 - id: optval_UkLWZg9DAJ
                   option_type_id: opt_UkLWZg9DAJ
-                  name: size-11
+                  name: size-5
                   label: S
                   position: 1
                   color_code:
-                  option_type_name: foo-size-20
+                  option_type_name: foo-size-14
                   option_type_label: Size
                   image_url:
                   metadata: {}
@@ -25837,11 +25837,11 @@ paths:
                   option_values:
                   - id: optval_UkLWZg9DAJ
                     option_type_id: opt_UkLWZg9DAJ
-                    name: size-31
+                    name: size-25
                     label: S
                     position: 1
                     color_code:
-                    option_type_name: foo-size-40
+                    option_type_name: foo-size-34
                     option_type_label: Size
                     image_url:
                     metadata: {}
@@ -26224,11 +26224,11 @@ paths:
                 option_values:
                 - id: optval_UkLWZg9DAJ
                   option_type_id: opt_UkLWZg9DAJ
-                  name: size-34
+                  name: size-28
                   label: S
                   position: 1
                   color_code:
-                  option_type_name: foo-size-43
+                  option_type_name: foo-size-37
                   option_type_label: Size
                   image_url:
                   metadata: {}
@@ -26360,11 +26360,11 @@ paths:
                 option_values:
                 - id: optval_UkLWZg9DAJ
                   option_type_id: opt_UkLWZg9DAJ
-                  name: size-36
+                  name: size-30
                   label: S
                   position: 1
                   color_code:
-                  option_type_name: foo-size-45
+                  option_type_name: foo-size-39
                   option_type_label: Size
                   image_url:
                   metadata: {}
@@ -27997,138 +27997,6 @@ paths:
                   - prod_abc123
               required:
               - product_ids
-  "/api/v3/admin/catalogs/{catalog_id}/quantity_rules":
-    get:
-      summary: List catalog quantity rules
-      tags:
-      - Catalogs
-      security:
-      - api_key: []
-        bearer_auth: []
-      description: |-
-        The catalog's per-variant quantity terms. The catalog-wide default is a pair of fields on the catalog itself, so these are strictly the overrides.
-
-        **Required scope:** `read_products` (for API-key authentication).
-      parameters:
-      - name: x-spree-api-key
-        in: header
-        required: true
-        schema:
-          type: string
-      - name: Authorization
-        in: header
-        required: true
-        schema:
-          type: string
-      - name: catalog_id
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: quantity rules found
-          content:
-            application/json:
-              example:
-                data:
-                - id: cqr_UkLWZg9DAJ
-                  minimum_order_quantity: 48
-                  order_multiple: 24
-                  created_at: '2026-01-15T12:00:00.000Z'
-                  updated_at: '2026-01-15T12:00:00.000Z'
-                  variant_id: variant_gbHJdmfrXB
-                  variant_sku: SKU-5
-                  product_name: Product 45457
-                  options_text: 'Size: S'
-                meta:
-                  page: 1
-                  limit: 25
-                  count: 1
-                  pages: 1
-                  from: 1
-                  to: 1
-                  in: 1
-                  previous:
-                  next:
-    post:
-      summary: Create a catalog quantity rule
-      tags:
-      - Catalogs
-      security:
-      - api_key: []
-        bearer_auth: []
-      description: |-
-        States how much of one variant a buyer on this agreement must order. Both fields are optional individually, but a rule must state at least one — a field left out falls through to the catalog default, and then to the variant.
-
-        **Required scope:** `write_products` (for API-key authentication).
-      parameters:
-      - name: x-spree-api-key
-        in: header
-        required: true
-        schema:
-          type: string
-      - name: Authorization
-        in: header
-        required: true
-        schema:
-          type: string
-      - name: catalog_id
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        '201':
-          description: quantity rule created
-          content:
-            application/json:
-              example:
-                id: cqr_UkLWZg9DAJ
-                minimum_order_quantity: 48
-                order_multiple: 24
-                created_at: '2026-01-15T12:00:00.000Z'
-                updated_at: '2026-01-15T12:00:00.000Z'
-                variant_id: variant_gbHJdmfrXB
-                variant_sku: SKU-7
-                product_name: Product 51599
-                options_text: 'Size: S'
-        '422':
-          description: invalid request
-          content:
-            application/json:
-              example:
-                error:
-                  code: validation_error
-                  message: Set a minimum order quantity, an order multiple, or both
-                  details:
-                    base:
-                    - code: quantity_rule_states_nothing
-                      message: Set a minimum order quantity, an order multiple, or
-                        both
-                      specific: false
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                variant_id:
-                  type: string
-                  example: variant_86Rf07xd4z
-                minimum_order_quantity:
-                  type: integer
-                  nullable: true
-                  example: 48
-                  description: The least a buyer may order.
-                order_multiple:
-                  type: integer
-                  nullable: true
-                  example: 24
-                  description: Orders must land on a multiple of this, counted from
-                    the minimum.
-              required:
-              - variant_id
   "/api/v3/admin/catalogs/{catalog_id}/order_minimums":
     get:
       summary: List catalog order minimums
@@ -28249,103 +28117,6 @@ paths:
               required:
               - currency
               - amount
-  "/api/v3/admin/catalogs/{catalog_id}/quantity_rules/{id}":
-    patch:
-      summary: Update a catalog quantity rule
-      tags:
-      - Catalogs
-      security:
-      - api_key: []
-        bearer_auth: []
-      description: |-
-        Restates one variant term. A field sent as null hands that field back to the catalog default; a rule must still state at least one of the two.
-
-        **Required scope:** `write_products` (for API-key authentication).
-      parameters:
-      - name: x-spree-api-key
-        in: header
-        required: true
-        schema:
-          type: string
-      - name: Authorization
-        in: header
-        required: true
-        schema:
-          type: string
-      - name: catalog_id
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: quantity rule updated
-          content:
-            application/json:
-              example:
-                id: cqr_UkLWZg9DAJ
-                minimum_order_quantity: 96
-                order_multiple: 24
-                created_at: '2026-01-15T12:00:00.000Z'
-                updated_at: '2026-01-15T12:00:00.000Z'
-                variant_id: variant_gbHJdmfrXB
-                variant_sku: SKU-11
-                product_name: Product 71912
-                options_text: 'Size: S'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                minimum_order_quantity:
-                  type: integer
-                  nullable: true
-                  example: 96
-                order_multiple:
-                  type: integer
-                  nullable: true
-                  example: 48
-    delete:
-      summary: Delete a catalog quantity rule
-      tags:
-      - Catalogs
-      security:
-      - api_key: []
-        bearer_auth: []
-      description: |-
-        Drops one variant's exception, so it falls back to the catalog's own default.
-
-        **Required scope:** `write_products` (for API-key authentication).
-      parameters:
-      - name: x-spree-api-key
-        in: header
-        required: true
-        schema:
-          type: string
-      - name: Authorization
-        in: header
-        required: true
-        schema:
-          type: string
-      - name: catalog_id
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        '204':
-          description: quantity rule deleted
   "/api/v3/admin/catalogs/{catalog_id}/order_minimums/{id}":
     patch:
       summary: Update a catalog order minimum
@@ -28435,56 +28206,16 @@ paths:
       responses:
         '204':
           description: order minimum deleted
-  "/api/v3/admin/catalogs/{catalog_id}/product_terms":
-    get:
-      summary: List catalog terms by product
-      tags:
-      - Catalogs
-      security:
-      - api_key: []
-        bearer_auth: []
-      description: |-
-        The catalog's quantity terms at the grain a merchant states them: one entry per product, over rows the database keeps per variant. `mixed` marks a product whose variants carry different terms.
-
-        **Required scope:** `read_products` (for API-key authentication).
-      parameters:
-      - name: x-spree-api-key
-        in: header
-        required: true
-        schema:
-          type: string
-      - name: Authorization
-        in: header
-        required: true
-        schema:
-          type: string
-      - name: catalog_id
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: product terms found
-          content:
-            application/json:
-              example:
-                data:
-                - id: prod_UkLWZg9DAJ
-                  product_id: prod_UkLWZg9DAJ
-                  product_name: Product 93986
-                  minimum_order_quantity: 48
-                  order_multiple: 24
-                  mixed: true
+  "/api/v3/admin/catalogs/{catalog_id}/quantity_rules":
     put:
-      summary: Set catalog terms by product
+      summary: Set catalog quantity rules
       tags:
       - Catalogs
       security:
       - api_key: []
         bearer_auth: []
       description: |-
-        Writes the given products' terms in one request, keyed by prefixed product id. Both fields null clears that product's terms; a product not yet in the assortment is added, since a term with nothing to apply to is not a reachable state. Products absent from the payload are left alone — this is the one catalog-term surface that is not a whole-set replacement, because an agreement may name terms for thousands of SKUs.
+        Writes the given products' quantity terms in one request, keyed by prefixed product id. The stated pair is written to every variant of the product, which is the grain the database keeps them at. Both fields null clears that product's terms; a product not yet in the assortment is added, since a term with nothing to apply to is not a reachable state. Products absent from the payload are left alone — an agreement may name terms for thousands of SKUs. Read them back on the assortment rows: `GET /catalogs/{id}/products?expand=quantity_rule`.
 
         **Required scope:** `write_products` (for API-key authentication).
       parameters:
@@ -28504,18 +28235,8 @@ paths:
         schema:
           type: string
       responses:
-        '200':
-          description: product terms set
-          content:
-            application/json:
-              example:
-                data:
-                - id: prod_UkLWZg9DAJ
-                  product_id: prod_UkLWZg9DAJ
-                  product_name: Product 107053
-                  minimum_order_quantity: 48
-                  order_multiple: 24
-                  mixed: false
+        '204':
+          description: quantity rules set
       requestBody:
         content:
           application/json:
@@ -37291,6 +37012,10 @@ components:
           type: string
         thumbnail_url:
           type: string
+          nullable: true
+        quantity_rule:
+          allOf:
+          - "$ref": "#/components/schemas/CatalogProductTerm"
           nullable: true
         catalog_variants:
           type: array

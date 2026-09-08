@@ -105,7 +105,6 @@ import type {
   CatalogOrderMinimumParams,
   CatalogParams,
   CatalogProductTermsParams,
-  CatalogQuantityRuleParams,
   CategoryCreateParams,
   CategoryRepositionParams,
   CategoryUpdateParams,
@@ -267,8 +266,6 @@ import type {
   CatalogAssignment,
   CatalogOrderMinimum,
   CatalogProduct,
-  CatalogProductTerm,
-  CatalogQuantityRule,
   Category,
   Channel,
   Claim,
@@ -3781,61 +3778,15 @@ export class AdminClient {
       }),
 
     /**
-     * Per-variant quantity terms. The catalog-wide default is a pair of
+     * A catalog's quantity terms. The catalog-wide default is a pair of
      * fields on the catalog itself, so this is strictly the overrides.
+     *
+     * Written as a whole set at the grain a merchant states them at (per
+     * product, over rows the database keeps per variant). Read them back on
+     * the assortment rows instead: `catalogs.products.list(id, { expand:
+     * ['quantity_rule'] })`.
      */
     quantityRules: {
-      list: (
-        catalogId: string,
-        params?: ListParams & Record<string, unknown>,
-        options?: RequestOptions,
-      ): Promise<PaginatedResponse<CatalogQuantityRule>> =>
-        this.request<PaginatedResponse<CatalogQuantityRule>>(
-          'GET',
-          `/catalogs/${catalogId}/quantity_rules`,
-          { ...options, params: params ? transformListParams(params) : undefined },
-        ),
-
-      create: (
-        catalogId: string,
-        params: CatalogQuantityRuleParams,
-        options?: RequestOptions,
-      ): Promise<CatalogQuantityRule> =>
-        this.request<CatalogQuantityRule>('POST', `/catalogs/${catalogId}/quantity_rules`, {
-          ...options,
-          body: params,
-        }),
-
-      update: (
-        catalogId: string,
-        id: string,
-        params: CatalogQuantityRuleParams,
-        options?: RequestOptions,
-      ): Promise<CatalogQuantityRule> =>
-        this.request<CatalogQuantityRule>('PATCH', `/catalogs/${catalogId}/quantity_rules/${id}`, {
-          ...options,
-          body: params,
-        }),
-
-      delete: (catalogId: string, id: string, options?: RequestOptions): Promise<void> =>
-        this.request<void>('DELETE', `/catalogs/${catalogId}/quantity_rules/${id}`, options),
-    },
-
-    /**
-     * Per-product quantity terms — the grain the agreement editor states
-     * them at, over rows the database keeps per variant.
-     */
-    productTerms: {
-      list: (
-        catalogId: string,
-        options?: RequestOptions,
-      ): Promise<{ data: CatalogProductTerm[] }> =>
-        this.request<{ data: CatalogProductTerm[] }>(
-          'GET',
-          `/catalogs/${catalogId}/product_terms`,
-          options,
-        ),
-
       /**
        * Writes the whole set in one request. A product whose pair is both
        * null has its terms cleared; a product not yet in the assortment is
@@ -3846,12 +3797,11 @@ export class AdminClient {
         catalogId: string,
         params: CatalogProductTermsParams,
         options?: RequestOptions,
-      ): Promise<{ data: CatalogProductTerm[] }> =>
-        this.request<{ data: CatalogProductTerm[] }>(
-          'PUT',
-          `/catalogs/${catalogId}/product_terms`,
-          { ...options, body: params },
-        ),
+      ): Promise<void> =>
+        this.request<void>('PUT', `/catalogs/${catalogId}/quantity_rules`, {
+          ...options,
+          body: params,
+        }),
     },
 
     /** The order minimum in each currency this agreement states one for. */

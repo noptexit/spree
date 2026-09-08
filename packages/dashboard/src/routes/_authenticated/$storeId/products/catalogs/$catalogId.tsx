@@ -29,7 +29,7 @@ import {
 } from '@spree/dashboard-ui'
 import { PauseIcon, PlayIcon, TableIcon } from '@spree/dashboard-ui/icons'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { type UseFormReturn, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { CatalogAudienceCard } from '../../../../../components/spree/catalog-audience'
@@ -41,9 +41,9 @@ import { CatalogPricingFields } from '../../../../../components/spree/catalog-pr
 import {
   CatalogTermsCard,
   catalogTermColumns,
+  savedTermLookup,
   stagedTermsHaveErrors,
   stagedTermsToParams,
-  termsToFormValues,
 } from '../../../../../components/spree/catalog-terms-card'
 import { DeferredProductMembershipCard } from '../../../../../components/spree/deferred-product-membership-card'
 import { ImportWizardDialog } from '../../../../../components/spree/imports/import-wizard-dialog'
@@ -61,7 +61,6 @@ import {
   useActivateCatalog,
   useCatalog,
   useCatalogProducts,
-  useCatalogProductTerms,
   useDeactivateCatalog,
   useDeleteCatalog,
   useSaveCatalog,
@@ -115,8 +114,6 @@ function CatalogBody({ catalog }: { catalog: Catalog }) {
   const deleteMutation = useDeleteCatalog()
   const wizard = useImportWizardSearch(Route.useSearch())
   const saveMutation = useSaveCatalog(catalog.id)
-  const { data: productTermsData } = useCatalogProductTerms(catalog.id)
-  const productTerms = useMemo(() => productTermsData?.data ?? [], [productTermsData])
 
   const canEdit = permissions.can('update', Subject.Catalog)
 
@@ -163,9 +160,13 @@ function CatalogBody({ catalog }: { catalog: Catalog }) {
       })),
       ...catalogPricingValues(catalog.price_list),
       staged_products: { adds: [], removes: [] },
-      staged_terms: termsToFormValues(productTerms),
+      // Not seeded from the server: terms arrive on the assortment rows, a
+      // page at a time, so the form holds only what the merchant edits. A
+      // form seeded per page would send one page's terms as the whole set
+      // and clear every other page's (docs/plans/6.0-volume-pricing.md).
+      staged_terms: {},
     })
-  }, [catalog, productTerms, form])
+  }, [catalog, form])
 
   // Both directions confirm: activating starts showing an audience prices they
   // were not seeing, and deactivating takes them away. Whole keys rather than
@@ -219,7 +220,7 @@ function CatalogBody({ catalog }: { catalog: Catalog }) {
         attributes: catalogValuesToParams(values, savedPricingMode),
         addProductIds: values.staged_products.adds.map((product) => product.id),
         removeProductIds: values.staged_products.removes,
-        productTerms: stagedTermsToParams(terms),
+        quantityRules: stagedTermsToParams(terms),
       })
       form.reset({ ...values, staged_products: { adds: [], removes: [] } })
     } catch (err) {
@@ -335,7 +336,7 @@ function CatalogBody({ catalog }: { catalog: Catalog }) {
                     variantsOf: (product) => product.catalog_variants,
                   })
                 }
-                extraColumns={() =>
+                extraColumns={(products) =>
                   mergeExtraColumns(
                     catalogPriceColumns({
                       headers: {
@@ -346,6 +347,7 @@ function CatalogBody({ catalog }: { catalog: Catalog }) {
                     catalogTermColumns({
                       form,
                       canEdit,
+                      savedTermFor: savedTermLookup(products),
                       headers: {
                         // Short column headers — the card's own title already
                         // says these are quantity terms. The full names stay as

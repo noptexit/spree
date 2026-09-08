@@ -44,6 +44,50 @@ RSpec.describe Spree::Api::V3::Admin::Catalogs::ProductsController, type: :contr
       expect(json_response['data'].first).not_to have_key('catalog_variants')
     end
 
+    # The terms ride along on the rows they belong to. They used to be their
+    # own unpaginated request that loaded every rule in the catalog and
+    # grouped it by product — the same roll-up, over the variants this page
+    # already holds (docs/plans/6.0-volume-pricing.md).
+    it 'rolls a product\'s quantity terms up onto its row' do
+      product = create(:product, store: store)
+      create(:catalog_product, catalog: catalog, product: product)
+      create(:catalog_quantity_rule, catalog: catalog, variant: product.default_variant,
+                                     minimum_order_quantity: 48, order_multiple: 24)
+
+      get :index, params: { catalog_id: catalog.prefixed_id, expand: 'quantity_rule' }, as: :json
+
+      rule = json_response['data'].first['quantity_rule']
+      expect(rule['product_id']).to eq(product.prefixed_id)
+      expect(rule['minimum_order_quantity']).to eq(48)
+      expect(rule['order_multiple']).to eq(24)
+    end
+
+    # The rows are per variant, so a product whose variants disagree is
+    # reported honestly rather than by picking one of them.
+    it 'marks a product whose variants carry different terms as mixed' do
+      product = create(:product, store: store)
+      second = create(:variant, product: product)
+      create(:catalog_product, catalog: catalog, product: product)
+      create(:catalog_quantity_rule, catalog: catalog, variant: product.default_variant,
+                                     minimum_order_quantity: 48)
+      create(:catalog_quantity_rule, catalog: catalog, variant: second, minimum_order_quantity: 96)
+
+      get :index, params: { catalog_id: catalog.prefixed_id, expand: 'quantity_rule' }, as: :json
+
+      expect(json_response['data'].first['quantity_rule']['mixed']).to be(true)
+    end
+
+    it 'leaves the terms out unless they are asked for' do
+      product = create(:product, store: store)
+      create(:catalog_product, catalog: catalog, product: product)
+      create(:catalog_quantity_rule, catalog: catalog, variant: product.default_variant,
+                                     minimum_order_quantity: 48)
+
+      get :index, params: { catalog_id: catalog.prefixed_id }, as: :json
+
+      expect(json_response['data'].first).not_to have_key('quantity_rule')
+    end
+
     # The card renders a name and a thumbnail, and the picker reads ids. A
     # full product payload per row is what made this page slow, so the shape
     # is pinned rather than left to whatever the admin serializer grows

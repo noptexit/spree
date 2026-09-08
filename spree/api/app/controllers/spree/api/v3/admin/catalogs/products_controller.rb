@@ -27,9 +27,24 @@ module Spree
             # own `expand?` does, so the attribute never renders without the
             # resolver that fills it.
             def serializer_params
-              return super unless expanded_keys.include?('catalog_price')
+              params = super
+              params = params.merge(catalog_price_resolver: catalog_price_resolver) if expanded_keys.include?('catalog_price')
+              params = params.merge(catalog_quantity_rules: quantity_rules_by_product) if expanded_keys.include?('quantity_rule')
+              params
+            end
 
-              super.merge(catalog_price_resolver: catalog_price_resolver)
+            # The page's quantity rules in one query, keyed by product. The
+            # rows are stored per variant and read per product, which is the
+            # roll-up the serializer does — on variants this page has already
+            # loaded (docs/plans/6.0-volume-pricing.md).
+            def quantity_rules_by_product
+              @quantity_rules_by_product ||= begin
+                variant_ids = priced_variants.map(&:id)
+                rules = variant_ids.any? ? @catalog.quantity_rules.where(variant_id: variant_ids).to_a : []
+                product_by_variant = priced_variants.to_h { |variant| [variant.id, variant.product_id] }
+
+                rules.group_by { |rule| product_by_variant[rule.variant_id] }
+              end
             end
 
             # Preloaded with every variant the page renders — each row now
