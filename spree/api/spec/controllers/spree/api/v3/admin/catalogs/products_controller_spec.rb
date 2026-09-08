@@ -41,7 +41,28 @@ RSpec.describe Spree::Api::V3::Admin::Catalogs::ProductsController, type: :contr
 
       get :index, params: { catalog_id: catalog.prefixed_id }, as: :json
 
-      expect(json_response['data'].first).not_to have_key('catalog_price')
+      expect(json_response['data'].first).not_to have_key('catalog_variants')
+    end
+
+    # The card renders a name and a thumbnail, and the picker reads ids. A
+    # full product payload per row is what made this page slow, so the shape
+    # is pinned rather than left to whatever the admin serializer grows
+    # (docs/plans/6.0-volume-pricing.md).
+    it 'sends only what the membership card and the picker read' do
+      create(:catalog_product, catalog: catalog, product: create(:product, store: store, price: 100))
+
+      get :index, params: { catalog_id: catalog.prefixed_id }, as: :json
+
+      expect(json_response['data'].first.keys).to match_array(%w[id name thumbnail_url])
+    end
+
+    it 'adds only the price reading when expanded' do
+      create(:catalog_product, catalog: catalog, product: create(:product, store: store, price: 100))
+
+      get :index, params: { catalog_id: catalog.prefixed_id, expand: 'catalog_price' }, as: :json
+
+      expect(json_response['data'].first.keys).
+        to match_array(%w[id name thumbnail_url catalog_variants])
     end
 
     # What the products-with-prices view reads: the amount a buyer on this
@@ -54,7 +75,7 @@ RSpec.describe Spree::Api::V3::Admin::Catalogs::ProductsController, type: :contr
 
       get :index, params: { catalog_id: catalog.prefixed_id, expand: 'catalog_price' }, as: :json
 
-      price = json_response['data'].first['catalog_price']
+      price = json_response['data'].first['catalog_variants'].first
       expect(price['amount']).to eq('85.0')
       expect(price['source']).to eq('automatic')
     end
@@ -70,7 +91,7 @@ RSpec.describe Spree::Api::V3::Admin::Catalogs::ProductsController, type: :contr
       get :index, params: { catalog_id: catalog.prefixed_id, expand: 'catalog_price.anything' },
                   as: :json
 
-      expect(json_response['data'].first['catalog_price']).to be_present
+      expect(json_response['data'].first['catalog_variants']).to be_present
     end
 
     # The divergence the view exists to expose: in the assortment, priced by
@@ -82,7 +103,7 @@ RSpec.describe Spree::Api::V3::Admin::Catalogs::ProductsController, type: :contr
 
       get :index, params: { catalog_id: catalog.prefixed_id, expand: 'catalog_price' }, as: :json
 
-      expect(json_response['data'].first['catalog_price']['source']).to eq('base')
+      expect(json_response['data'].first['catalog_variants'].first['source']).to eq('base')
     end
   end
 end

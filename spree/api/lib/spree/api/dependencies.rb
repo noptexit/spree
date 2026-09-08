@@ -167,6 +167,7 @@ module Spree
         admin_catalog_price_serializer: 'Spree::Api::V3::Admin::CatalogPriceSerializer',
         admin_catalog_price_tier_serializer: 'Spree::Api::V3::Admin::CatalogPriceTierSerializer',
         admin_catalog_product_serializer: 'Spree::Api::V3::Admin::CatalogProductSerializer',
+        admin_price_list_product_serializer: 'Spree::Api::V3::Admin::PriceListProductSerializer',
         admin_catalog_assignment_serializer: 'Spree::Api::V3::Admin::CatalogAssignmentSerializer',
         admin_catalog_quantity_rule_serializer: 'Spree::Api::V3::Admin::CatalogQuantityRuleSerializer',
         admin_catalog_product_term_serializer: 'Spree::Api::V3::Admin::CatalogProductTermSerializer',

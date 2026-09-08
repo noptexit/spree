@@ -163,7 +163,7 @@ RSpec.describe 'Admin Catalogs API', type: :request, swagger_doc: 'api-reference
         schema SwaggerSchemaHelpers.paginated('CatalogProduct')
 
         run_test! do |response|
-          price = JSON.parse(response.body)['data'].first['catalog_price']
+          price = JSON.parse(response.body)['data'].first['catalog_variants'].first
           expect(price['source']).to eq('automatic')
           expect(price['amount']).to eq('80.0')
         end

@@ -10,6 +10,56 @@ RSpec.describe Spree::Catalogs::ResolvePrices do
     described_class.new(catalog: catalog, currency: currency).call(variant)
   end
 
+  def resolve_list(list, currency: 'USD')
+    described_class.new(price_list: list, currency: currency).call(variant)
+  end
+
+  describe 'built from a price list' do
+    it 'needs a catalog or a list' do
+      expect { described_class.new(currency: 'USD') }.to raise_error(ArgumentError)
+    end
+
+    it 'reads the list as it stands, draft included' do
+      list = create(:price_list, :draft, store: store)
+      create(:price, variant: variant, price_list: list, amount: 60, currency: 'USD')
+
+      price = resolve_list(list)
+
+      expect(price.amount).to eq(60)
+      expect(price.source).to eq('explicit')
+    end
+
+    it 'carries the ladder as tiers' do
+      list = create(:price_list, store: store)
+      create(:price, variant: variant, price_list: list, amount: 60, currency: 'USD')
+      create(:price, variant: variant, price_list: list, amount: 50, currency: 'USD', min_quantity: 24)
+      create(:price, variant: variant, price_list: list, amount: 45, currency: 'USD', min_quantity: 96)
+
+      price = resolve_list(list)
+
+      expect(price.break_count).to eq(2)
+      expect(price.tiers.map { |tier| [tier.min_quantity, tier.amount] }).to eq([[24, 50], [96, 45]])
+    end
+
+    it 'falls through to base for a variant the list does not price' do
+      list = create(:price_list, store: store)
+
+      price = resolve_list(list)
+
+      expect(price.amount).to eq(100)
+      expect(price.source).to eq('base')
+    end
+
+    it 'derives from the percentage of a catalog-owned list opened as a list' do
+      list = create(:price_list, :draft, store: store, catalog: catalog, price_adjustment_percentage: -15)
+
+      price = resolve_list(list)
+
+      expect(price.amount).to eq(85)
+      expect(price.source).to eq('automatic')
+    end
+  end
+
   describe '#call' do
     it 'reads the base price when the catalog prices at base' do
       price = resolve(catalog)

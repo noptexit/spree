@@ -321,6 +321,7 @@ import type {
   Policy,
   Price,
   PriceList,
+  PriceListProduct,
   Product,
   ProductType,
   Promotion,
@@ -2547,7 +2548,7 @@ export class AdminClient {
     /** Which products the list prices — the same nested surface categories,
      * collections and catalogs expose. Adding materializes placeholder
      * prices per variant × currency; removing hard-deletes the rows. */
-    products: this.productMembership('/price_lists'),
+    products: this.productMembership<PriceListProduct>('/price_lists'),
 
     activate: (id: string, options?: RequestOptions): Promise<PriceList> =>
       this.request<PriceList>('PATCH', `/price_lists/${id}/activate`, options),

@@ -46,29 +46,18 @@ module Spree
               Array(@collection).flat_map { |product| product.variants.to_a }
             end
 
-            # Every row lists its variants and prices each of them, so what the
-            # rows read comes down with the page rather than a query per
-            # variant: the prices the resolver picks from, the option values
-            # that name the variant, and the stock levels behind the
-            # in-stock and purchasable flags
+            # Only what this page reads: the card's thumbnail, and every
+            # variant with the rows and option values the resolver and the
+            # variant rows need. `default_variant` is deliberately absent —
+            # it is a separate `belongs_to` with a cache of its own, so
+            # reading it here would re-query option values per row. Publications, stock levels and the default
+            # variant's own prices are deliberately absent — this endpoint
+            # serializes the membership shape, not a full admin product
             # (docs/plans/6.0-volume-pricing.md).
-            #
-            # `default_variant` is preloaded separately from `variants`
-            # despite being one of them: it is its own `belongs_to`, so it
-            # arrives as a different object with a cache of its own, and the
-            # product row's price and status read it rather than the
-            # collection. Its prices and publications come with it, since
-            # `price_in` and `publication_for` both query per product unless
-            # the association is already loaded.
             def collection_includes
               [
-                { product_publications: :channel },
-                { default_variant: :prices },
-                { variants: [
-                  :prices,
-                  { option_values: :option_type },
-                  { stock_levels: %i[stock_location active_stock_reservations] }
-                ] }
+                :primary_media,
+                { variants: [:prices, { option_values: :option_type }] }
               ]
             end
 
