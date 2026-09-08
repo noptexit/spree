@@ -177,7 +177,22 @@ function DataGridShell<T>({
   return (
     <DataGridContext.Provider value={ctx}>
       <DataGridKeyboardMount gridRef={gridRef} />
-      <div className="relative overflow-hidden rounded-md">
+      {/* Scrolls sideways rather than clipping: a grid wide enough to need it
+          (the bulk variant editor sets a min-width well past any viewport) had
+          its right-hand columns cut off with no way to reach them, because the
+          `overflow-hidden` that used to clip this wrapper also beat the
+          caller's own scroll container. Nothing rounds the corners now — the
+          table's own cell borders draw its edges.
+
+          `max-h-full` is what keeps the sticky header working. Declaring one
+          overflow axis makes the other a scroll container too whatever it is
+          declared as, so this div scrolls vertically whether or not we ask it
+          to — and an unbounded one grows to its full content height, which
+          leaves `position: sticky` with nothing to stick within. Bounding it
+          to the caller's height gives the header a viewport again, and a
+          caller that imposes no height (a grid that scrolls with the page)
+          still resolves to no constraint. */}
+      <div className="relative max-h-full overflow-auto">
         <table
           ref={gridRef}
           // Focusable so the grid itself can hold the keyboard when a cell's

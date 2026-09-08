@@ -235,7 +235,16 @@ export function BulkVariantsDialog({ form, open, onOpenChange }: Props) {
             </Button>
           </div>
         </DialogHeader>
-        <DialogBody className="min-h-0 flex-1 overflow-auto p-3">
+        {/* No gutter: the body holds nothing but the grid, so padding only
+            narrows the space the columns have to fit in and leaves the
+            table's own border floating inside the dialog's.
+
+            `DialogBody` already scrolls on y and bounds its own height, so
+            the grid inside it has something to size against and stays the one
+            element that scrolls sideways. Do not add an overflow utility
+            here: the base class sets the `overflow-y` longhand, which a bare
+            `overflow-hidden` does not override at equal specificity. */}
+        <DialogBody className="min-h-0 flex-1 p-0">
           <BulkVariantsTable
             rows={rows}
             onChange={handleChange}

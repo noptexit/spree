@@ -1,6 +1,8 @@
 import type { ProductFormValues, VariantFormValues } from '@spree/dashboard-core'
 import { CountryCombobox, StoreDatePicker } from '@spree/dashboard-core'
 import {
+  Alert,
+  AlertDescription,
   Button,
   Field,
   FieldDescription,
@@ -25,9 +27,12 @@ import {
   SheetTitle,
   Switch,
 } from '@spree/dashboard-ui'
+import { Link } from '@tanstack/react-router'
+import { InfoIcon } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Controller, type UseFormReturn } from 'react-hook-form'
-import { useTranslation } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
+import { useTenantId } from '../providers/tenant-provider'
 import { cartonSize } from './carton-size'
 import { normalizeCustomsDescription, normalizeHsCode } from './normalize-customs'
 import { PURCHASE_UNITS } from './normalize-quantity'
@@ -60,11 +65,22 @@ export function VariantEditSheet({ form, variantIndex, open, onOpenChange }: Pro
   const hasTaxCategories = taxCategories.length > 0
   const { data: optionTypesData } = useOptionTypes()
   const optionTypes = optionTypesData?.data ?? []
-  // Nothing to pack into means nothing to ask: the section stays hidden until
-  // the store has recorded a carton.
-  const { data: cartonTypesResponse } = useCartonPackageTypes()
+  const tenantId = useTenantId()
+  // A panel that does not manage package types at all (a seller's) has no
+  // packing to ask about, so the section stays hidden there. An operator with
+  // none created yet still sees it, disabled, saying where to make one —
+  // hiding it outright left no trace of a feature they had not set up.
+  const {
+    data: cartonTypesResponse,
+    isPending: cartonTypesPending,
+    supported: cartonTypesSupported,
+  } = useCartonPackageTypes()
   const cartonTypes = cartonTypesResponse?.data ?? []
   const hasCartonTypes = cartonTypes.length > 0
+  // Only once the list has actually answered. While it is in flight the empty
+  // array below is not yet evidence of an empty store, and telling a merchant
+  // who has cartons to go and make one is worse than saying nothing.
+  const knownEmpty = cartonTypesSupported && !cartonTypesPending && !hasCartonTypes
   // A packed carton is weighed on the same scale as the goods inside it, so
   // this follows the variant's own unit rather than offering a second one.
   const cartonWeightUnit = form.watch(`variants.${variantIndex}.weight_unit`) || ''
@@ -292,11 +308,29 @@ export function VariantEditSheet({ form, variantIndex, open, onOpenChange }: Pro
             </div>
           </FormSection>
 
-          {hasCartonTypes && (
+          {cartonTypesSupported && (
             <FormSection title={t('admin.products.variants.sheet.packing')}>
               <p className="text-sm text-muted-foreground">
                 {t('admin.products.variants.sheet.packing_help')}
               </p>
+              {knownEmpty && (
+                <Alert variant="info">
+                  <InfoIcon />
+                  <AlertDescription>
+                    <Trans
+                      i18nKey="admin.products.variants.sheet.no_carton_types"
+                      components={{
+                        settingsLink: (
+                          <Link
+                            to={`/${tenantId}/settings/package-types` as never}
+                            className="underline underline-offset-3"
+                          />
+                        ),
+                      }}
+                    />
+                  </AlertDescription>
+                </Alert>
+              )}
               <Field>
                 <FieldLabel htmlFor={`variant-${variantIndex}-carton`}>
                   {t('admin.fields.variant.carton_package_type_id.label')}
@@ -309,7 +343,11 @@ export function VariantEditSheet({ form, variantIndex, open, onOpenChange }: Pro
                       value={field.value ?? ''}
                       onValueChange={(value) => field.onChange(value || null)}
                     >
-                      <SelectTrigger id={`variant-${variantIndex}-carton`} className="w-full">
+                      <SelectTrigger
+                        id={`variant-${variantIndex}-carton`}
+                        className="w-full"
+                        disabled={!hasCartonTypes}
+                      >
                         <SelectValue
                           placeholder={t('admin.products.variants.sheet.carton_placeholder')}
                         >
@@ -361,6 +399,7 @@ export function VariantEditSheet({ form, variantIndex, open, onOpenChange }: Pro
                           type="number"
                           step="0.01"
                           min="0"
+                          disabled={!hasCartonTypes}
                           value={field.value ?? ''}
                           onChange={(event) => {
                             const parsed = Number(event.target.value)
@@ -391,6 +430,7 @@ export function VariantEditSheet({ form, variantIndex, open, onOpenChange }: Pro
                     type="number"
                     min="1"
                     step="1"
+                    disabled={!hasCartonTypes}
                     {...form.register(`variants.${variantIndex}.cartons_per_pallet`)}
                   />
                   <FieldError
