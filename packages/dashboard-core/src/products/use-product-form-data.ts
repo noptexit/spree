@@ -153,6 +153,10 @@ export function useFormCartonPackageTypes() {
       (await client.packageTypes?.list({ limit: 100, kind_eq: 'carton' })) ?? { data: [] },
     enabled: supported,
     staleTime: FIVE_MINUTES,
+    // The seller endpoint returns their own cartons before the
+    // marketplace's, so the 100-row ceiling cuts the shared vocabulary rather
+    // than the seller's own measurements. Ordered there rather than here
+    // because the page is taken before anything client-side could reorder it.
   })
 
   return { ...query, supported }

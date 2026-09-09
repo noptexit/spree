@@ -152,13 +152,14 @@ export interface PanelApiClient {
     list(params?: Record<string, unknown>): Promise<{ data: PanelDeliveryProfile[] }>
   }
   /**
-   * The store's packaging vocabulary. Read by the variant editor to offer
-   * the carton a product is packed into; the panel passes `kind` through so
-   * only cartons are listed.
+   * The packaging this panel can see: the boxes parcels ship in, the cartons
+   * products are packed into, the pallets a wholesale order leaves on.
+   *
+   * `list` alone is enough for the variant editor's carton picker, which is
+   * why the write methods are optional — a panel that only needs the picker
+   * registers `list` and the packaging settings page is simply not routed.
    */
-  packageTypes?: {
-    list(params?: Record<string, unknown>): Promise<{ data: PanelPackageType[] }>
-  }
+  packageTypes?: PanelPackageTypeReads | PanelPackageTypeWrites
   /**
    * Headers a file download must carry beyond the bearer token.
    *
@@ -286,6 +287,87 @@ export interface PanelPackageType extends PanelNamedRecord {
   width?: string | null
   height?: string | null
   dimensions_unit?: string | null
+  /** The empty package's own weight, added to every quote. */
+  weight?: string | null
+  max_weight?: string | null
+  weight_unit?: string | null
+  /** Cubic meters, derived; null until every side is measured. */
+  volume?: string | null
+  /** The box this owner's parcels are quoted with — one per owner. */
+  default?: boolean
+  /**
+   * False on a row this panel may read but not change: the seller panel lists
+   * the marketplace's packaging so a seller knows what they can pack into,
+   * and every write against it is refused. Absent on the operator's own
+   * serializer, where every row is theirs, so the page treats undefined as
+   * editable.
+   */
+  editable?: boolean
+  /** Whose packaging this is; null is the marketplace's own. */
+  seller_id?: string | null
+  seller_name?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+/**
+ * Measurements written back for a package type. Every field optional: the
+ * form sends the whole shape on create, and a partial one when a single
+ * measurement changes.
+ */
+export interface PanelPackageTypeParams {
+  name?: string
+  /**
+   * Narrow rather than `string`, because both SDKs validate the vocabulary at
+   * the type level and a widened contract would not assign to either.
+   */
+  kind?: PanelPackageTypeKind
+  length?: number | null
+  width?: number | null
+  height?: number | null
+  dimensions_unit?: PanelPackageDimensionUnit | null
+  weight?: number | null
+  max_weight?: number | null
+  weight_unit?: PanelPackageWeightUnit | null
+  default?: boolean
+  /**
+   * Not nullable: both SDKs take a merge, so clearing a key is sending the
+   * object without it rather than sending null.
+   */
+  metadata?: Record<string, unknown>
+}
+
+/**
+ * Enough for the variant editor's carton picker: a panel that only needs the
+ * picker registers this and never routes to the packaging settings page.
+ */
+export interface PanelPackageTypeReads {
+  list(params?: Record<string, unknown>): Promise<{ data: PanelPackageType[]; meta?: unknown }>
+}
+
+/**
+ * What the packaging settings page needs. Required rather than optional, so a
+ * panel that routes to the page while registering reads only fails to
+ * compile instead of rendering a page whose every write throws.
+ */
+export interface PanelPackageTypeWrites extends PanelPackageTypeReads {
+  get(id: string): Promise<PanelPackageType>
+  create(params: PanelPackageTypeCreateParams): Promise<PanelPackageType>
+  update(id: string, params: PanelPackageTypeParams): Promise<PanelPackageType>
+  delete?(id: string): Promise<void>
+}
+
+export type PanelPackageTypeKind = 'box' | 'envelope' | 'carton' | 'pallet' | 'container'
+export type PanelPackageDimensionUnit = 'mm' | 'cm' | 'in' | 'ft'
+export type PanelPackageWeightUnit = 'g' | 'kg' | 'lb' | 'oz'
+
+/**
+ * A new row must say what it is and what to call it — packaging without
+ * either cannot exist, and neither SDK makes them optional.
+ */
+export type PanelPackageTypeCreateParams = PanelPackageTypeParams & {
+  name: string
+  kind: PanelPackageTypeKind
 }
 
 /**
